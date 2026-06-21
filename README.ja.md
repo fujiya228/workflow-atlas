@@ -9,7 +9,9 @@
 *flow* は **操作**(状態を変換する順序つきステップ列)。書くのは JSON だけ。汎用エンジンが、キーボードで
 歩ける・9 種のカラースキームを切替できる、外部依存ゼロの単一 `.html` を描画します。
 
-**▶ ライブギャラリー:** https://fujiya228.github.io/workflow-atlas/ (GitHub Pages を Source: `main` / `docs` で有効化)
+[![Workflow Atlas デモ — 操作を選び、方向キーでステップを送る(キャンバスと右パネルが同期)、最後にカラースキーム切替](docs/media/demo.gif)](https://fujiya228.github.io/workflow-atlas/)
+
+**▶ ライブギャラリー:** https://fujiya228.github.io/workflow-atlas/
 
 ## なぜ
 

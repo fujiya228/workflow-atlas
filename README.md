@@ -10,7 +10,9 @@ A *flow* is an **operation** (an ordered list of steps that transforms state). Y
 a generic engine renders one self-contained, offline `.html` with keyboard-walkable steps and nine
 swappable color schemes.
 
-**▶ Live gallery:** https://fujiya228.github.io/workflow-atlas/ (enable GitHub Pages → Source: `main` / `docs`)
+[![Workflow Atlas — pick an operation, step through it with the arrow keys (canvas + panel stay in sync), then switch color scheme](docs/media/demo.gif)](https://fujiya228.github.io/workflow-atlas/)
+
+**▶ Live gallery:** https://fujiya228.github.io/workflow-atlas/
 
 ## Why
 
