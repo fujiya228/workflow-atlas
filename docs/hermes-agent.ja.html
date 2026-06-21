@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="okabe-ito-light">
+<!--
+  Workflow Atlas — single-file interactive specification (state × operation).
+  See SPEC.md. Author edits ONLY data; engine/themes are generic.
+
+  Two authoring paths:
+   * BUILD : `atlas build data.json --theme <name> -o out.html`
+             substitutes the data + theme regions, the data-theme attribute, and the page title.
+   * INLINE: copy this file, edit the #workflow-data JSON block and the
+             <html data-theme="…"> attribute in place. No tooling required.
+
+  Self-contained: no network, no external assets. Renders from file://.
+-->
+<head>
+<meta charset="utf-8" />
+<title>Hermes Agent — パッケージ/コンポーネント間ワークフロー</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style id="atlas-theme">
+  /*ATLAS:THEME*/
+:root{
+    --bg:#F8FAFC; --surface:#FFFFFF; --bg-2:#F1F5F9; --panel:#F1F5F9;
+    --line:#CBD5E1; --grid:#E2E8F0; --text:#111827; --muted:#64748B;
+    --edge:#94A3B8; --edge-active:#0072B2; --edge-active-glow:rgba(0,114,178,0.35);
+  }
+/*/ATLAS:THEME*/
+</style>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:
+      radial-gradient(1200px 600px at 18% -10%, var(--bg-2) 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
+    font-size:13px;
+    overflow:hidden;
+  }
+  #app{ display:flex; flex-direction:column; height:100vh; }
+
+  /* ---- header ---- */
+  header{
+    display:flex; align-items:center; gap:14px; padding:10px 16px;
+    border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--bg) 70%, transparent);
+    backdrop-filter:blur(6px); flex:0 0 auto;
+  }
+  header .brand{ font-weight:700; letter-spacing:.04em; white-space:nowrap; }
+  header .brand .glyph{ color:var(--edge-active); }
+  header .sub{ color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  header .spacer{ flex:1; }
+  header .hint{ color:var(--muted); font-size:11px; white-space:nowrap; }
+  header .hint kbd{
+    background:var(--panel); border:1px solid var(--line); border-bottom-width:2px;
+    border-radius:4px; padding:0 5px; font-size:10px; color:var(--text);
+  }
+  header select#theme-select{
+    background:var(--panel); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:3px 6px; font-size:11px; cursor:pointer;
+  }
+
+  /* ---- flow chips ---- */
+  #chips{
+    display:flex; gap:6px; overflow-x:auto; padding:8px 16px; flex:0 0 auto;
+    border-bottom:1px solid var(--line); background:var(--bg-2);
+    scrollbar-width:thin;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    padding:5px 11px; border-radius:999px; cursor:pointer; user-select:none;
+    background:var(--panel); border:1px solid var(--line); color:var(--muted);
+    font-size:12px; transition:all .15s;
+  }
+  .chip:hover{ border-color:var(--edge-active); color:var(--text); }
+  .chip.active{
+    border-color:var(--edge-active); color:var(--edge-active);
+    box-shadow:0 0 0 1px var(--edge-active-glow), 0 2px 10px var(--edge-active-glow);
+  }
+  .chip .ic{ font-size:13px; }
+  .chip .kk{ font-size:9px; opacity:.6; }
+
+  /* ---- main ---- */
+  main{ flex:1; display:flex; min-height:0; }
+  #stage{ position:relative; flex:1; min-width:0; overflow:hidden; cursor:grab; }
+  #stage.panning{ cursor:grabbing; }
+  svg#canvas{ width:100%; height:100%; display:block; touch-action:none; }
+
+  /* ---- nodes ---- */
+  .node .node-rect{
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+    transition:opacity .35s ease;
+  }
+  .node .node-title{ font-size:12px; font-weight:700; fill:var(--text); pointer-events:none; }
+  .node .node-sub{ font-size:10.5px; fill:var(--nsub); pointer-events:none; }
+  .node.in-flow .node-rect{ stroke-width:2.5; filter:drop-shadow(0 0 7px var(--gstroke)); }
+  .node.dim{ opacity:.18; }
+  .node.endpoint .node-rect{ stroke-width:3; animation:node-glow 1.1s ease-in-out infinite; }
+  .col-head{ fill:var(--muted); font-size:12px; font-weight:700; letter-spacing:.34em; }
+  .col-div{ stroke:var(--line); stroke-width:1; stroke-dasharray:3,5; opacity:.7; }
+
+  /* ---- edges ---- */
+  .edge{ fill:none; }
+  .base-edge{ stroke:var(--edge); stroke-width:1.3; opacity:.55; marker-end:url(#arrow-base); }
+  .flow-edge{
+    stroke:var(--edge-active); stroke-width:2; opacity:.92;
+    filter:drop-shadow(0 0 3px var(--edge-active-glow)); marker-end:url(#arrow-active);
+  }
+  .flow-edge.focused-edge{ animation:edge-pulse 1.1s ease-in-out infinite; }
+  .tether{ stroke:var(--edge-active); stroke-width:1; stroke-dasharray:2,3; opacity:.4; fill:none; }
+
+  /* ---- badges ---- */
+  .edge-step-hit{ fill:rgba(0,0,0,0.001); pointer-events:all; cursor:pointer; }
+  .edge-step-halo{ fill:var(--edge-active-glow); opacity:0; pointer-events:none;
+    transform-origin:center; transform-box:fill-box; }
+  .edge-step-scale{ transform-origin:center; transform-box:fill-box; }
+  .edge-step-pill{ fill:var(--panel); stroke:var(--edge-active); stroke-width:1.2;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45)); }
+  .edge-step-badge text{ font-size:11px; font-weight:700; fill:var(--edge-active);
+    font-family:ui-monospace,Menlo,Consolas,monospace; pointer-events:none; }
+  .edge-step-badge:hover .edge-step-pill{ fill:var(--edge-active); stroke:var(--surface); }
+  .edge-step-badge:hover text{ fill:var(--surface); }
+  .edge-step-badge.focused .edge-step-scale{ animation:pulse .9s cubic-bezier(.5,0,.5,1) infinite; }
+  .edge-step-badge.focused .edge-step-halo{ animation:halo-burst 1.3s ease-out infinite; }
+  .edge-step-badge.focused .edge-step-pill{ fill:var(--edge-active); stroke:var(--surface); }
+  .edge-step-badge.focused text{ fill:var(--surface); }
+
+  /* ---- keyframes (PIKAPIKA) ---- */
+  @keyframes pulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.42);
+      filter:drop-shadow(0 0 7px var(--edge-active)) drop-shadow(0 0 13px var(--edge-active-glow)); }
+  }
+  @keyframes halo-burst{
+    0%{ transform:scale(.55); opacity:.85; }
+    100%{ transform:scale(3); opacity:0; }
+  }
+  @keyframes edge-pulse{
+    0%,100%{ stroke:var(--edge-active); stroke-width:2.8; filter:drop-shadow(0 0 4px var(--edge-active-glow)); }
+    50%{ stroke-width:4.2; filter:drop-shadow(0 0 9px var(--edge-active)) drop-shadow(0 0 6px var(--edge-active-glow)); }
+  }
+  @keyframes node-glow{
+    0%,100%{ filter:drop-shadow(0 0 6px var(--gstroke)); }
+    50%{ filter:drop-shadow(0 0 15px var(--edge-active)) drop-shadow(0 0 7px var(--gstroke)); }
+  }
+  @keyframes anno-flash{
+    0%{ background:var(--edge-active-glow); }
+    100%{ background:transparent; }
+  }
+
+  /* ---- annotation panel ---- */
+  aside{
+    flex:0 0 372px; width:372px; border-right:1px solid var(--line);
+    background:var(--bg-2);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .anno-head{ padding:14px 16px 12px; border-bottom:1px solid var(--line); }
+  .anno-head .ttl{ font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .anno-head .ttl .ic{ font-size:18px; }
+  .anno-head .desc{ color:var(--muted); font-size:11.5px; line-height:1.55; margin-top:7px; }
+  .anno-scroll{ overflow-y:auto; padding:10px 14px 40px; flex:1; scrollbar-width:thin; }
+  ol.steps{ counter-reset:step; list-style:none; margin:0; padding:0; }
+  li.step{
+    counter-increment:step; position:relative; padding:9px 10px 10px 38px;
+    border-radius:8px; margin-bottom:8px; border:1px solid transparent;
+    cursor:pointer; transition:background .15s,border-color .15s;
+  }
+  li.step:hover{ background:color-mix(in srgb, var(--text) 4%, transparent); border-color:var(--line); }
+  li.step::before{
+    content:counter(step); position:absolute; left:8px; top:9px;
+    width:21px; height:21px; border-radius:50%;
+    background:var(--panel); border:1px solid var(--edge-active); color:var(--edge-active);
+    font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace,Menlo,monospace;
+  }
+  li.step.focused{ animation:anno-flash 1.2s ease-out;
+    background:color-mix(in srgb, var(--edge-active) 10%, transparent);
+    border-color:var(--edge-active); }
+  .step-edge{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px; color:var(--text); }
+  .step-edge .ep{ color:var(--edge-active); }
+  .step-edge .arr{ color:var(--muted); margin:0 4px; }
+  .step-passes{
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; line-height:1.5;
+    color:var(--text); background:var(--panel); border-left:2px solid var(--edge-active);
+    border-radius:0 5px 5px 0; padding:5px 8px; margin:6px 0 0; word-break:break-word; white-space:pre-wrap;
+  }
+  .step-note{ color:var(--muted); font-size:11px; line-height:1.5; margin-top:6px; }
+  .anno-empty{ color:var(--muted); font-size:12px; line-height:1.7; padding:24px 6px; }
+  .anno-empty b{ color:var(--text); }
+
+  /* ---- tooltip ---- */
+  #tooltip{
+    position:fixed; z-index:60; display:none; max-width:360px; pointer-events:none;
+    background:var(--surface); border:1px solid var(--edge-active); border-radius:9px;
+    box-shadow:0 8px 26px rgba(0,0,0,0.35), 0 0 0 1px var(--edge-active-glow);
+    backdrop-filter:blur(9px); padding:10px 12px; font-size:11.5px; line-height:1.55; color:var(--text);
+  }
+  #tooltip .tt-flow{ color:var(--edge-active); font-weight:700; font-size:11px; margin-bottom:6px; }
+  #tooltip .tt-step + .tt-step{ margin-top:9px; border-top:1px dashed var(--line); padding-top:8px; }
+  #tooltip .tt-edge{ font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+  #tooltip .tt-edge .chip2{ background:var(--panel); border:1px solid var(--line); color:var(--edge-active);
+    border-radius:4px; padding:1px 5px; }
+  #tooltip .tt-edge .arr{ color:var(--muted); margin:0 4px; }
+  #tooltip .tt-pass{ font-family:ui-monospace,Menlo,monospace; font-size:10.5px; color:var(--text);
+    background:var(--panel); border-radius:5px; padding:4px 7px; margin:5px 0 0; white-space:pre-wrap; word-break:break-word; }
+  #tooltip .tt-note{ color:var(--muted); margin-top:5px; }
+  #tooltip .tt-num{ color:var(--edge-active); font-weight:700; }
+
+  .zoomctl{ position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; }
+  .zoomctl button{
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text); font-size:16px; cursor:pointer;
+  }
+  .zoomctl button:hover{ border-color:var(--edge-active); color:var(--edge-active); }
+  @media (max-width:880px){ aside{ display:none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><span class="glyph">◆</span> <span id="brand-title">Workflow Atlas</span></div>
+    <div class="sub" id="brand-sub"></div>
+    <div class="spacer"></div>
+    <select id="theme-select" title="カラースキーム"></select>
+    <div class="hint"><kbd>1</kbd>–<kbd>0</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> 解除</div>
+  </header>
+  <div id="chips"></div>
+  <main>
+    <aside>
+      <div class="anno-head">
+        <div class="ttl"><span class="ic" id="anno-ic">🗺️</span><span id="anno-title">フローを選択</span></div>
+        <div class="desc" id="anno-desc"></div>
+      </div>
+      <div class="anno-scroll" id="anno-scroll"></div>
+    </aside>
+    <div id="stage">
+      <svg id="canvas" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="zoomctl">
+        <button data-z="in" title="ズームイン">＋</button>
+        <button data-z="out" title="ズームアウト">－</button>
+        <button data-z="fit" title="全体表示 (F)">⤢</button>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="tooltip"></div>
+
+<!-- Bundled color schemes (single source for inline path; Builder reads this table too). -->
+<script type="application/json" id="atlas-themes">
+{
+  "okabe-ito-light": { "id":"okabe-ito-light","name":"Okabe-Ito (Light)","mode":"light","chrome":{"bg":"#F8FAFC","surface":"#FFFFFF","panel":"#F1F5F9","line":"#CBD5E1","grid":"#E2E8F0","text":"#111827","muted":"#64748B","edge":"#94A3B8","edge-active":"#0072B2","edge-active-glow":"rgba(0,114,178,0.35)"},"lanes":["#0072B2","#009E73","#E69F00","#CC79A7","#56B4E9","#D55E00","#000000"] },
+  "okabe-ito-dark": { "id":"okabe-ito-dark","name":"Okabe-Ito (Dark)","mode":"dark","chrome":{"bg":"#0c1117","surface":"#161d27","panel":"#11171f","line":"#2a3340","grid":"#1c2530","text":"#d6dde6","muted":"#8a94a3","edge":"#3a4452","edge-active":"#56B4E9","edge-active-glow":"rgba(86,180,233,0.40)"},"lanes":["#56B4E9","#009E73","#E69F00","#CC79A7","#0072B2","#D55E00","#F0E442"] },
+  "catppuccin-latte": { "id":"catppuccin-latte","name":"Catppuccin Latte","mode":"light","chrome":{"bg":"#eff1f5","surface":"#ffffff","panel":"#e6e9ef","line":"#ccd0da","grid":"#dce0e8","text":"#4c4f69","muted":"#6c6f85","edge":"#9ca0b0","edge-active":"#1e66f5","edge-active-glow":"rgba(30,102,245,0.30)"},"lanes":["#1e66f5","#40a02b","#df8e1d","#ea76cb","#04a5e5","#d20f39","#8839ef"] },
+  "catppuccin-mocha": { "id":"catppuccin-mocha","name":"Catppuccin Mocha","mode":"dark","chrome":{"bg":"#1e1e2e","surface":"#313244","panel":"#181825","line":"#45475a","grid":"#313244","text":"#cdd6f4","muted":"#a6adc8","edge":"#6c7086","edge-active":"#89b4fa","edge-active-glow":"rgba(137,180,250,0.40)"},"lanes":["#89b4fa","#a6e3a1","#f9e2af","#f5c2e7","#89dceb","#f38ba8","#cba6f7"] },
+  "solarized-light": { "id":"solarized-light","name":"Solarized Light","mode":"light","chrome":{"bg":"#fdf6e3","surface":"#ffffff","panel":"#eee8d5","line":"#93a1a1","grid":"#e3dcc6","text":"#073642","muted":"#657b83","edge":"#93a1a1","edge-active":"#268bd2","edge-active-glow":"rgba(38,139,210,0.30)"},"lanes":["#268bd2","#859900","#b58900","#d33682","#2aa198","#dc322f","#6c71c4"] },
+  "solarized-dark": { "id":"solarized-dark","name":"Solarized Dark","mode":"dark","chrome":{"bg":"#002b36","surface":"#073642","panel":"#073642","line":"#586e75","grid":"#0a3a45","text":"#eee8d5","muted":"#839496","edge":"#586e75","edge-active":"#268bd2","edge-active-glow":"rgba(38,139,210,0.40)"},"lanes":["#268bd2","#859900","#b58900","#d33682","#2aa198","#dc322f","#6c71c4"] },
+  "nord": { "id":"nord","name":"Nord","mode":"dark","chrome":{"bg":"#2e3440","surface":"#3b4252","panel":"#2e3440","line":"#434c5e","grid":"#3b4252","text":"#eceff4","muted":"#9aa3b5","edge":"#4c566a","edge-active":"#88c0d0","edge-active-glow":"rgba(136,192,208,0.40)"},"lanes":["#81a1c1","#a3be8c","#ebcb8b","#b48ead","#88c0d0","#bf616a","#5e81ac"] },
+  "dracula": { "id":"dracula","name":"Dracula","mode":"dark","chrome":{"bg":"#282a36","surface":"#343746","panel":"#21222c","line":"#44475a","grid":"#343746","text":"#f8f8f2","muted":"#6272a4","edge":"#44475a","edge-active":"#ff79c6","edge-active-glow":"rgba(255,121,198,0.45)"},"lanes":["#bd93f9","#50fa7b","#f1fa8c","#ff79c6","#8be9fd","#ff5555","#ffb86c"] },
+  "gruvbox-dark": { "id":"gruvbox-dark","name":"Gruvbox Dark","mode":"dark","chrome":{"bg":"#282828","surface":"#3c3836","panel":"#1d2021","line":"#504945","grid":"#3c3836","text":"#ebdbb2","muted":"#a89984","edge":"#504945","edge-active":"#fabd2f","edge-active-glow":"rgba(250,189,47,0.40)"},"lanes":["#83a598","#b8bb26","#fabd2f","#d3869b","#8ec07c","#fb4934","#fe8019"] }
+}
+</script>
+
+<script type="application/json" id="workflow-data">
+/*ATLAS:DATA*/
+{
+  "meta": {
+    "title": "Hermes Agent — パッケージ/コンポーネント間ワークフロー",
+    "repo": "github.com/nousresearch/hermes-agent",
+    "note": "実コードのトレースに基づく。各 step の note 末尾は file:line の根拠。"
+  },
+  "viewBox": {
+    "w": 1500,
+    "h": 900
+  },
+  "columns": [
+    {
+      "id": "external",
+      "label": "EXTERNAL",
+      "x": 150,
+      "divider": 300
+    },
+    {
+      "id": "entry",
+      "label": "ENTRY",
+      "x": 450,
+      "divider": 600
+    },
+    {
+      "id": "core",
+      "label": "CORE",
+      "x": 750,
+      "divider": 900
+    },
+    {
+      "id": "tools",
+      "label": "TOOLS",
+      "x": 1050,
+      "divider": 1200
+    },
+    {
+      "id": "state",
+      "label": "STATE",
+      "x": 1350,
+      "divider": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "external",
+      "label": "External"
+    },
+    {
+      "id": "entry",
+      "label": "Entry"
+    },
+    {
+      "id": "core",
+      "label": "Core"
+    },
+    {
+      "id": "tools",
+      "label": "Tools"
+    },
+    {
+      "id": "state",
+      "label": "State"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "title": "ユーザー",
+      "subtitle": "CLI / メッセージ / エディタ",
+      "group": "external",
+      "x": 40,
+      "y": 100,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "msg-platform",
+      "title": "メッセージング基盤",
+      "subtitle": "Telegram / Slack / Discord / Email",
+      "group": "external",
+      "x": 40,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "llm-provider",
+      "title": "LLM プロバイダ",
+      "subtitle": "OpenAI互換 / Anthropic / Bedrock / Codex",
+      "group": "external",
+      "x": 40,
+      "y": 388,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "mcp-server",
+      "title": "外部 MCP サーバ",
+      "subtitle": "stdio / HTTP / SSE",
+      "group": "external",
+      "x": 40,
+      "y": 532,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "exec-backend",
+      "title": "実行バックエンド",
+      "subtitle": "local / Docker / SSH / Modal / Daytona",
+      "group": "external",
+      "x": 40,
+      "y": 676,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "honcho-service",
+      "title": "Honcho サービス",
+      "subtitle": "対話的ユーザーモデリング (任意)",
+      "group": "external",
+      "x": 40,
+      "y": 820,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "cli",
+      "title": "CLI / REPL",
+      "subtitle": "hermes_cli.main → cli.py",
+      "group": "entry",
+      "x": 340,
+      "y": 100,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "gateway",
+      "title": "メッセージング Gateway",
+      "subtitle": "GatewayRunner + HTTP API",
+      "group": "entry",
+      "x": 340,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "tui-gateway",
+      "title": "TUI Gateway",
+      "subtitle": "tui_gateway (Node ブリッジ)",
+      "group": "entry",
+      "x": 340,
+      "y": 388,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "acp-adapter",
+      "title": "ACP アダプタ",
+      "subtitle": "acp_adapter (エディタ連携)",
+      "group": "entry",
+      "x": 340,
+      "y": 532,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "cron-scheduler",
+      "title": "Cron スケジューラ",
+      "subtitle": "cron/scheduler.py",
+      "group": "entry",
+      "x": 340,
+      "y": 676,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "batch-runner",
+      "title": "バッチランナー",
+      "subtitle": "batch_runner.py (軌跡生成)",
+      "group": "entry",
+      "x": 340,
+      "y": 820,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "system-prompt",
+      "title": "システムプロンプト組立",
+      "subtitle": "identity + memory + skills",
+      "group": "core",
+      "x": 640,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "agent-loop",
+      "title": "エージェントループ",
+      "subtitle": "run_conversation (conversation_loop)",
+      "group": "core",
+      "x": 640,
+      "y": 432,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "model-client",
+      "title": "モデルクライアント",
+      "subtitle": "provider 選択 + LLM 呼出",
+      "group": "core",
+      "x": 640,
+      "y": 620,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "code-exec",
+      "title": "execute_code RPC",
+      "subtitle": "ゼロコンテキスト・パイプライン",
+      "group": "tools",
+      "x": 940,
+      "y": 120,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "mcp-client",
+      "title": "MCP クライアント",
+      "subtitle": "tools/mcp_tool.py",
+      "group": "tools",
+      "x": 940,
+      "y": 270,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "tool-exec",
+      "title": "ツール実行ディスパッチ",
+      "subtitle": "registry.dispatch",
+      "group": "tools",
+      "x": 940,
+      "y": 420,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "terminal-tool",
+      "title": "ターミナルツール",
+      "subtitle": "tools/terminal_tool.py",
+      "group": "tools",
+      "x": 940,
+      "y": 570,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "delegate",
+      "title": "サブエージェント委譲",
+      "subtitle": "delegate_task → 子 AIAgent",
+      "group": "tools",
+      "x": 940,
+      "y": 720,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "session-db",
+      "title": "セッション DB",
+      "subtitle": "SQLite + FTS5 (hermes_state)",
+      "group": "state",
+      "x": 1240,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "memory-store",
+      "title": "メモリ",
+      "subtitle": "MEMORY.md / USER.md",
+      "group": "state",
+      "x": 1240,
+      "y": 432,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "skills-store",
+      "title": "スキルストア",
+      "subtitle": "skills + curator / 背景レビュー",
+      "group": "state",
+      "x": 1240,
+      "y": 620,
+      "w": 220,
+      "h": 56
+    }
+  ],
+  "flows": [
+    {
+      "id": "cli-start",
+      "icon": "🚀",
+      "name": "1. CLI 起動 → 対話エージェント",
+      "sub": "hermes コマンドから AIAgent 構築まで",
+      "description": "`hermes`（サブコマンド無し）が hermes_cli.main → cmd_chat を経て cli.py の REPL を起動し、AIAgent を構築してターンを駆動する。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "cli",
+          "passes": "hermes 起動 (argv: model/provider/toolsets/resume)",
+          "note": "hermes_cli.main:main() がパース、サブコマンド無しは chat 既定 (main.py:12625)"
+        },
+        {
+          "from": "cli",
+          "to": "agent-loop",
+          "passes": "AIAgent(model, provider, toolsets, session_id) + chat(query)",
+          "note": "cmd_chat→cli.main(**kwargs)→AIAgent 構築し REPL 駆動 (main.py:2311, cli.py:821)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "session_id, source",
+          "note": "起動時にセッション作成/復元 (SessionDB.create_session, hermes_state.py:1369)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "user",
+          "passes": "応答テキスト",
+          "note": "REPL がターンを回し表示 (cli.chat, cli.py:14861)"
+        }
+      ]
+    },
+    {
+      "id": "agent-turn",
+      "icon": "🔄",
+      "name": "2. エージェント1ターン (LLM 呼出)",
+      "sub": "プロンプト組立 → 推論 → 永続化",
+      "description": "ユーザーメッセージが run_conversation に入り、3層システムプロンプト（メモリ/スキル注入）を組み立て、provider へ推論要求、最終応答を確定して SessionDB に永続化する中核ターン。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "agent-loop",
+          "passes": "ユーザーメッセージ",
+          "note": "run_conversation(user_message) (run_agent.py:5272 → conversation_loop.py:469)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "system-prompt",
+          "passes": "valid_tool_names, system_message",
+          "note": "build_turn_context→build_system_prompt_parts; 安定/コンテキスト/揮発の3層 (turn_context.py:64, system_prompt.py:113)"
+        },
+        {
+          "from": "memory-store",
+          "to": "system-prompt",
+          "passes": "MEMORY.md + USER.md スナップショット",
+          "note": "揮発層に注入 (format_for_system_prompt, system_prompt.py:425)"
+        },
+        {
+          "from": "skills-store",
+          "to": "system-prompt",
+          "passes": "スキル index (name+description)",
+          "note": "build_skills_system_prompt (prompt_builder.py:1244)"
+        },
+        {
+          "from": "system-prompt",
+          "to": "agent-loop",
+          "passes": "active_system_prompt",
+          "note": "_cached_system_prompt にキャッシュ (turn_context.py:253)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages (system+履歴) + tool schemas + max_tokens",
+          "note": "build_api_kwargs→interruptible_streaming_api_call (chat_completion_helpers.py:555,1567)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "chat.completions.create(stream=True)",
+          "note": "api_mode で OpenAI互換/Anthropic/Bedrock/Codex 分岐 (chat_completion_helpers.py:1831)"
+        },
+        {
+          "from": "llm-provider",
+          "to": "model-client",
+          "passes": "SSE deltas (text/reasoning/tool)",
+          "note": "validate→normalize_response で統一 assistant_message"
+        },
+        {
+          "from": "model-client",
+          "to": "agent-loop",
+          "passes": "assistant_message (.content/.tool_calls/.finish_reason)",
+          "note": "tool_calls 無→最終応答確定 (conversation_loop.py:3529,4381)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "messages[] (role/content/tool_calls)",
+          "note": "_persist_session→append_message (run_agent.py:1512,1581)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "user",
+          "passes": "最終テキスト (deltas 逐次配信)",
+          "note": "stream_delta_callback (run_agent.py:4213)"
+        }
+      ]
+    },
+    {
+      "id": "tool-roundtrip",
+      "icon": "🛠️",
+      "name": "3. ツール呼び出しラウンドトリップ",
+      "sub": "tool_calls → 実行 → 再注入ループ",
+      "description": "モデルが tool_calls を返すと tool_executor が registry.dispatch で実行し、tool 結果メッセージを messages に追加して再びループへ。",
+      "steps": [
+        {
+          "from": "llm-provider",
+          "to": "agent-loop",
+          "passes": "assistant_message.tool_calls [{id, name, arguments(json)}]",
+          "note": "tool_calls 検出→ツール分岐 (conversation_loop.py:3718)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "assistant_message, messages, task_id",
+          "note": "_execute_tool_calls→execute_tool_calls_concurrent/sequential (run_agent.py:5170)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "tool 結果 {role:tool, name, content, tool_call_id}",
+          "note": "registry.dispatch→make_tool_result_message; messages に追加 (model_tools.py:1115, tool_dispatch_helpers.py:320)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "tool 結果込み api_messages",
+          "note": "ループ継続、次の LLM 呼出 (conversation_loop.py:4069)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "更新 messages + tools",
+          "note": "次イテレーション推論"
+        }
+      ]
+    },
+    {
+      "id": "terminal-backend",
+      "icon": "💻",
+      "name": "4. ターミナル実行バックエンド",
+      "sub": "terminal ツール → 6 バックエンド分岐",
+      "description": "terminal ツールが TERMINAL_ENV から実行環境を選び、local/Docker/SSH/Modal/Daytona/Singularity のいずれかでコマンドを走らせ結果を回収する。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(terminal, {command, cwd})",
+          "note": "registry.dispatch('terminal') (model_tools.py:876)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "terminal-tool",
+          "passes": "command, env_type=TERMINAL_ENV",
+          "note": "terminal_tool→_create_environment ファクトリ (terminal_tool.py:1843,1225)"
+        },
+        {
+          "from": "terminal-tool",
+          "to": "exec-backend",
+          "passes": "bash -c '\u003csnapshot>; \u003ccmd>'",
+          "note": "local=Popen / docker=docker exec / ssh・modal・daytona は遠隔 (base.py:327)"
+        },
+        {
+          "from": "exec-backend",
+          "to": "terminal-tool",
+          "passes": "{output, returncode}",
+          "note": "実行結果を回収 (base.py:872)"
+        },
+        {
+          "from": "terminal-tool",
+          "to": "tool-exec",
+          "passes": "{output, exit_code, status} JSON",
+          "note": "結果を整形 (terminal_tool.py:1890)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "tool 結果メッセージ",
+          "note": "messages に追加しループ継続"
+        }
+      ]
+    },
+    {
+      "id": "execute-code-rpc",
+      "icon": "⚡",
+      "name": "5. execute_code RPC",
+      "sub": "生成スクリプトがツールを RPC 呼出",
+      "description": "execute_code が子プロセスに hermes_tools スタブを生成し、ソケット経由の RPC で複数ツールを 1 ターン内に連鎖実行（ゼロコンテキストコスト）。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(execute_code, {code})",
+          "note": "sandbox_enabled = enabled_tools (model_tools.py:1110)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "code-exec",
+          "passes": "生成 hermes_tools.py (_call スタブ) + 子プロセス起動",
+          "note": "generate_hermes_tools_module; HERMES_RPC_SOCKET (UDS/loopback) (code_execution_tool.py:259,1198)"
+        },
+        {
+          "from": "code-exec",
+          "to": "tool-exec",
+          "passes": "{'tool':name,'args':{...}} (RPC over socket)",
+          "note": "子 _call()→_rpc_server_loop が allowlist 検証→handle_function_call (code_execution_tool.py:525)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "code-exec",
+          "passes": "ツール結果 JSON",
+          "note": "ソケットで子へ返却。全パイプラインが 1 ターンで完結 (code_execution_tool.py:582)"
+        },
+        {
+          "from": "code-exec",
+          "to": "agent-loop",
+          "passes": "スクリプト stdout / 最終結果",
+          "note": "execute_code 結果をツール結果として返す"
+        }
+      ]
+    },
+    {
+      "id": "mcp-integration",
+      "icon": "🔌",
+      "name": "6. 外部 MCP 連携",
+      "sub": "接続 → ツール発見 → 登録 → 呼出",
+      "description": "外部 MCP サーバへ接続し list_tools で発見、mcp_\u003csrv>_\u003ctool> として registry に登録、モデル呼出時に call_tool で実行。",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "mcp-client",
+          "passes": "mcp_servers config (command/url, transport, tools)",
+          "note": "セッション開始時 register_mcp_servers (mcp_tool.py:4019)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "mcp-server",
+          "passes": "stdio/HTTP/SSE 接続 + initialize()",
+          "note": "専用 mcp-event-loop スレッド (mcp_tool.py:191)"
+        },
+        {
+          "from": "mcp-server",
+          "to": "mcp-client",
+          "passes": "list_tools() → [Tool(name, inputSchema)]",
+          "note": "ツール発見 (mcp_tool.py:2137)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "tool-exec",
+          "passes": "registry.register('mcp_\u003csrv>_\u003ctool>', schema, handler)",
+          "note": "接頭辞付きでレジストリ登録 (mcp_tool.py:3933)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(mcp_\u003csrv>_\u003ctool>, args)",
+          "note": "モデルが MCP ツール呼出 (registry.dispatch)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "mcp-client",
+          "passes": "call_tool(name, arguments)",
+          "note": "_make_tool_handler; circuit breaker (mcp_tool.py:3110)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "mcp-server",
+          "passes": "session.call_tool(...)",
+          "note": "MCP ループ上で実行 (mcp_tool.py:3152)"
+        },
+        {
+          "from": "mcp-server",
+          "to": "mcp-client",
+          "passes": "結果 content (text/image)",
+          "note": "結果回収 (mcp_tool.py:3160)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "agent-loop",
+          "passes": "結果メッセージ",
+          "note": "\u003cuntrusted_tool_result> でラップ→messages"
+        }
+      ]
+    },
+    {
+      "id": "delegate",
+      "icon": "👥",
+      "name": "7. サブエージェント委譲",
+      "sub": "delegate_task → 子 AIAgent → 要約回収",
+      "description": "delegate_task が制限ツールセットの子 AIAgent を構築し別スレッドで run_conversation、親は要約のみを受け取る。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(delegate_task, {goal, context, toolsets, role})",
+          "note": "registry.dispatch('delegate_task') (delegate_tool.py:2065)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "delegate",
+          "passes": "goal, toolsets, parent_agent",
+          "note": "深さ/並列数チェック→_build_child_agent (delegate_tool.py:972)"
+        },
+        {
+          "from": "delegate",
+          "to": "agent-loop",
+          "passes": "child = AIAgent(制限 toolset, depth+1); run_conversation(goal)",
+          "note": "子を別スレッドで実行 (delegate_tool.py:1651)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "delegate",
+          "passes": "child 結果 {status, summary=final_response}",
+          "note": "親は要約のみ参照 (delegate_tool.py:2341)"
+        },
+        {
+          "from": "delegate",
+          "to": "tool-exec",
+          "passes": "JSON {results:[...]}",
+          "note": "delegate_task 結果"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "結果メッセージ",
+          "note": "親 messages に追加"
+        }
+      ]
+    },
+    {
+      "id": "compression",
+      "icon": "🗜️",
+      "name": "8. コンテキスト圧縮",
+      "sub": "補助モデルで要約 → セッション交替",
+      "description": "should_compress が立つと ContextCompressor が補助サマライザモデルで履歴を要約し、新しい子セッションへローテーションする。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "要約対象 messages, current_tokens",
+          "note": "should_compress→compress_context→ContextCompressor.compress (conversation_loop.py:4053)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "要約プロンプト",
+          "note": "補助サマライザ(安価)モデルへ (auxiliary_client.call_llm)"
+        },
+        {
+          "from": "llm-provider",
+          "to": "model-client",
+          "passes": "要約テキスト",
+          "note": "失敗時メインモデルにフォールバック"
+        },
+        {
+          "from": "model-client",
+          "to": "agent-loop",
+          "passes": "(compressed_messages, new_system_prompt)",
+          "note": "圧縮結果 (context_compressor.py:2151)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "圧縮 messages, 新 child session_id",
+          "note": "session ローテーション + 圧縮ロック (conversation_compression.py:361,460)"
+        }
+      ]
+    },
+    {
+      "id": "gateway-msg",
+      "icon": "💬",
+      "name": "9. メッセージング Gateway 受信→返信",
+      "sub": "Telegram/Slack 等の往復",
+      "description": "プラットフォームのメッセージを adapter が MessageEvent へ正規化、session_key で AIAgent をルーティングし、応答をストリーム編集で返す。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "msg-platform",
+          "passes": "メッセージ送信",
+          "note": "Telegram/Slack 等に投稿"
+        },
+        {
+          "from": "msg-platform",
+          "to": "gateway",
+          "passes": "Update/Event {chat_id, text, user_id, thread}",
+          "note": "adapter が MessageEvent へ正規化 (telegram.py:6649)"
+        },
+        {
+          "from": "gateway",
+          "to": "session-db",
+          "passes": "build_session_key 'agent:main:telegram:dm:{chat_id}'",
+          "note": "セッションキーで履歴ルーティング (session.py:646)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "user_message, conversation_history, task_id=session_id",
+          "note": "_run_agent_inner→run_conversation; AIAgent をキャッシュ (run.py:15848)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "推論ターン (Flow 2 共通)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "text deltas",
+          "note": "stream_delta_callback→GatewayStreamConsumer.on_delta (run.py:15374)"
+        },
+        {
+          "from": "gateway",
+          "to": "msg-platform",
+          "passes": "応答テキスト (逐次編集)",
+          "note": "adapter.send→edit_message (editMessageText) (stream_consumer.py:795)"
+        },
+        {
+          "from": "msg-platform",
+          "to": "user",
+          "passes": "返信表示",
+          "note": "プラットフォームに配信"
+        }
+      ]
+    },
+    {
+      "id": "voice",
+      "icon": "🎙️",
+      "name": "10. 音声メモ → 文字起こし",
+      "sub": "ボイス DL → transcribe → エージェント",
+      "description": "ボイスメモを DL してキャッシュし、transcribe_audio（faster-whisper/クラウド Whisper）で文字起こししてからユーザーメッセージとして注入。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "msg-platform",
+          "passes": "ボイスメモ送信",
+          "note": "音声添付"
+        },
+        {
+          "from": "msg-platform",
+          "to": "gateway",
+          "passes": "音声ファイル (audio/ogg)",
+          "note": "DL→cache, _enrich_message_with_transcription (run.py:12702)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "'[ボイスメッセージ: \"{transcript}\"]' + 履歴",
+          "note": "transcribe_audio (faster-whisper/cloud Whisper)→run_conversation (run.py:12745,15848)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "応答 deltas",
+          "note": "通常応答 (Flow 9 共通)"
+        },
+        {
+          "from": "gateway",
+          "to": "msg-platform",
+          "passes": "返信テキスト",
+          "note": "配信 (edit_message)"
+        }
+      ]
+    },
+    {
+      "id": "http-api",
+      "icon": "🌐",
+      "name": "11. HTTP API (OpenAI 互換)",
+      "sub": "/v1/chat/completions → SSE",
+      "description": "OpenAI 互換 HTTP リクエストを APIServerAdapter が受け、session_id で履歴継続、リクエスト毎に agent を回して SSE で返す。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "gateway",
+          "passes": "POST /v1/chat/completions {messages, model, stream}",
+          "note": "APIServerAdapter._handle_chat_completions (api_server.py:1745)"
+        },
+        {
+          "from": "gateway",
+          "to": "session-db",
+          "passes": "session_id (header or fingerprint)",
+          "note": "get_messages_as_conversation で継続 (api_server.py:1817)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "user_message, conversation_history, task_id",
+          "note": "_run_agent→run_conversation; リクエスト毎に新 agent (api_server.py:3619)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "text deltas → queue.Queue",
+          "note": "_on_delta が SSE キューへ (api_server.py:1867)"
+        },
+        {
+          "from": "gateway",
+          "to": "user",
+          "passes": "SSE chunks {choices:[{delta:{content}}]} + [DONE]",
+          "note": "text/event-stream (api_server.py:2126)"
+        }
+      ]
+    },
+    {
+      "id": "tui",
+      "icon": "🖥️",
+      "name": "12. TUI ブリッジ",
+      "sub": "Node TUI ↔ tui_gateway (JSON-RPC)",
+      "description": "Node/TS 製 TUI が python -m tui_gateway.entry を spawn、JSON-RPC で prompt.submit を送り、message.delta 等のイベントを受信。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "tui-gateway",
+          "passes": "JSON-RPC {method:'prompt.submit', params:{session_id, text}}",
+          "note": "Node TUI→python -m tui_gateway.entry (stdio/WS) (server.py:6097)"
+        },
+        {
+          "from": "tui-gateway",
+          "to": "agent-loop",
+          "passes": "run_message, conversation_history, stream_callback, task_id=session_key",
+          "note": "_run_prompt_submit→run_conversation; agent をセッションにキャッシュ (server.py:6508)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tui-gateway",
+          "passes": "token deltas + tool/reasoning events",
+          "note": "_stream→_emit('message.delta') (server.py:6491)"
+        },
+        {
+          "from": "tui-gateway",
+          "to": "user",
+          "passes": "JSON-RPC event frames {type, payload}",
+          "note": "改行区切りで Node 側へ (server.py:750)"
+        }
+      ]
+    },
+    {
+      "id": "acp",
+      "icon": "✏️",
+      "name": "13. ACP エディタ連携",
+      "sub": "session/prompt → session/update",
+      "description": "Zed 等のエディタが ACP の session/prompt を送り、acp_adapter が AIAgent を回して session/update 通知でストリーム返却。",
+      "steps": [
+        {
+          "from": "user",
+          "to": "acp-adapter",
+          "passes": "JSON-RPC {method:'session/prompt', params:{prompt:[blocks]}}",
+          "note": "エディタ(Zed等)から stdio (server.py:1292)"
+        },
+        {
+          "from": "acp-adapter",
+          "to": "agent-loop",
+          "passes": "user_content (multimodal), conversation_history, task_id=session_id",
+          "note": "_run_agent→run_conversation; SessionManager が AIAgent 保持 (server.py:1505)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "acp-adapter",
+          "passes": "text/thought deltas, tool events",
+          "note": "events callbacks→session_update (events.py:87)"
+        },
+        {
+          "from": "acp-adapter",
+          "to": "user",
+          "passes": "session/update 通知 (agent_message_chunk, tool_call)",
+          "note": "JSON-RPC 通知 (events.py:266)"
+        }
+      ]
+    },
+    {
+      "id": "persist-search",
+      "icon": "💾",
+      "name": "14. セッション永続化 & 横断検索 (FTS5)",
+      "sub": "append → 索引 → session_search",
+      "description": "messages を SessionDB へ append すると AFTER INSERT トリガで FTS5 索引が更新され、session_search ツールが過去セッションを横断検索する。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "messages[] append (role/content/tool_calls)",
+          "note": "永続化; AFTER INSERT トリガで messages_fts/trigram 索引 (run_agent.py:1581, hermes_state.py:606)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(session_search, {query, limit})",
+          "note": "過去セッション検索ツール (session_search_tool.py:629)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "session-db",
+          "passes": "FTS5 query (messages_fts MATCH)",
+          "note": "BM25 ランク + snippet; CJK は trigram (hermes_state.py:3388,3476)"
+        },
+        {
+          "from": "session-db",
+          "to": "tool-exec",
+          "passes": "マッチ行 + 前後文脈 (anchored view ±5)",
+          "note": "get_anchored_view (session_search_tool.py:454)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "JSON {results:[{session_id, when, snippet, messages}]}",
+          "note": "生 DB 行を返却 (LLM 要約なし); 呼出モデルが統合 (session_search_tool.py:485)"
+        }
+      ]
+    },
+    {
+      "id": "memory",
+      "icon": "🧠",
+      "name": "15. メモリ読み書き",
+      "sub": "プロンプト注入 + prefetch + memory ツール",
+      "description": "MEMORY.md/USER.md がプロンプトへ凍結注入され、毎ターン外部メモリを prefetch、memory ツールがディスクへ書き戻す。",
+      "steps": [
+        {
+          "from": "memory-store",
+          "to": "system-prompt",
+          "passes": "MEMORY.md + USER.md (§区切り, サニタイズ済)",
+          "note": "起動/圧縮後 load_from_disk→凍結スナップショット (memory_tool.py:132)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "memory-store",
+          "passes": "query → prefetch",
+          "note": "memory_manager.on_turn_start/prefetch_all (turn_context.py:379)"
+        },
+        {
+          "from": "memory-store",
+          "to": "agent-loop",
+          "passes": "\u003cmemory-context> ブロック",
+          "note": "現ターンの user msg に付加(非永続) (conversation_loop.py:721)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(memory, {action:add/replace/remove, target})",
+          "note": "モデルがメモリ更新 (memory_tool.py:838)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "memory-store",
+          "passes": "エントリ追加/置換/削除",
+          "note": "原子的書込 + ドリフト検出で MEMORY.md/USER.md へ (memory_tool.py:269)"
+        }
+      ]
+    },
+    {
+      "id": "skill-loop",
+      "icon": "📈",
+      "name": "16. スキル自己改善ループ",
+      "sub": "発見 → 利用 → 背景レビュー → curator",
+      "description": "スキル index をプロンプトに出し、skill_view で本文ロード。ターン後に背景レビュー（フォーク AIAgent）が skill_manage で新規作成/パッチし、curator が定期統合する閉じた学習ループ。",
+      "steps": [
+        {
+          "from": "skills-store",
+          "to": "system-prompt",
+          "passes": "スキル index (name+description)",
+          "note": "build_skills_system_prompt; 本文は遅延 (prompt_builder.py:1244)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(skill_view, {name})",
+          "note": "必要時に本文ロード (skills_tool.py:862)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "skills-store",
+          "passes": "SKILL.md 読込",
+          "note": "全文を tool 結果へ (progressive disclosure)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "skills-store",
+          "passes": "messages snapshot (背景レビュー)",
+          "note": "ターン後 background_review(フォーク AIAgent) が skill_manage で作成/パッチ, agent_created (turn_finalizer.py:393, skill_manager_tool.py:559)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "memory-store",
+          "passes": "messages snapshot (メモリ nudge)",
+          "note": "10ターン毎に background_review がメモリ追記 (turn_context.py:230, background_review.py:521)"
+        },
+        {
+          "from": "cli",
+          "to": "skills-store",
+          "passes": "agent_created_report",
+          "note": "起動/定期に curator が古いスキルを整理/統合(7日間隔) (curator.py:1428, cli.py:11926)"
+        }
+      ]
+    },
+    {
+      "id": "cron",
+      "icon": "⏰",
+      "name": "17. Cron 定期実行 → 配信",
+      "sub": "tick → 無人実行 → プラットフォーム配信",
+      "description": "60 秒 tick で due ジョブを検出、runtime provider を再解決して AIAgent を無人実行し、deliver 先（Telegram 等）へ配信、jobs.json を更新。",
+      "steps": [
+        {
+          "from": "cron-scheduler",
+          "to": "agent-loop",
+          "passes": "job prompt (_build_job_prompt + DELIVERY/SILENT 指示), runtime provider",
+          "note": "60秒 tick→due job→AIAgent 構築→run_conversation (scheduler.py:2130,1870)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "無人実行 (platform='cron', skip_memory)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "推論要求",
+          "note": "ジョブの provider/model で実行"
+        },
+        {
+          "from": "agent-loop",
+          "to": "cron-scheduler",
+          "passes": "result {final_response, completed}",
+          "note": "[SILENT] でなければ配信へ (scheduler.py:1944)"
+        },
+        {
+          "from": "cron-scheduler",
+          "to": "msg-platform",
+          "passes": "deliver target (platform:chat:thread) + テキスト",
+          "note": "_deliver_result→adapter 送信 (scheduler.py:713,876)"
+        },
+        {
+          "from": "msg-platform",
+          "to": "user",
+          "passes": "スケジュール結果",
+          "note": "配信"
+        },
+        {
+          "from": "cron-scheduler",
+          "to": "session-db",
+          "passes": "last_status / next_run_at + セッション行",
+          "note": "mark_job_run; jobs.json 更新 (scheduler.py:2103)"
+        }
+      ]
+    },
+    {
+      "id": "batch",
+      "icon": "🏭",
+      "name": "18. バッチ軌跡生成",
+      "sub": "データセット → 並列会話 → JSONL",
+      "description": "JSONL データセットの各プロンプトに対し AIAgent を multiprocessing.Pool で並列実行し、学習用の軌跡レコードを trajectories.jsonl に収集。",
+      "steps": [
+        {
+          "from": "batch-runner",
+          "to": "agent-loop",
+          "passes": "AIAgent 構築 + run_conversation(prompt, task_id)",
+          "note": "JSONL データセットを multiprocessing.Pool 並列で会話化 (batch_runner.py:325,918)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "標準ループを大規模実行"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "chat.completions",
+          "note": "プロバイダ推論"
+        },
+        {
+          "from": "agent-loop",
+          "to": "batch-runner",
+          "passes": "trajectory {conversations:[{from,value}], tool_stats, completed}",
+          "note": "trajectories.jsonl に学習用軌跡を収集 (batch_runner.py:473)"
+        }
+      ]
+    },
+    {
+      "id": "honcho",
+      "icon": "🪞",
+      "name": "19. Honcho 対話的ユーザーモデリング",
+      "sub": "dialectic query → プロンプト注入 → 書戻し",
+      "description": "（任意プラグイン）memory_manager が Honcho の peer.chat で対話的にユーザー表現を問い合わせ、プロンプトへ注入。ターン終了時に会話を書き戻す。",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "honcho-service",
+          "passes": "dialectic query (現 user msg) + target peer",
+          "note": "memory_manager.prefetch_all→HonchoMemoryProvider; backend で LLM 実行 (memory_manager.py:452)"
+        },
+        {
+          "from": "honcho-service",
+          "to": "system-prompt",
+          "passes": "peer representation + dialectic 合成 (~600字)",
+          "note": "プロバイダブロックとしてプロンプト注入 (honcho __init__.py:578)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "honcho-service",
+          "passes": "user+assistant ターン add_messages()",
+          "note": "ターン/セッション終了時に書き戻し (honcho session.py:443)"
+        }
+      ]
+    }
+  ]
+}
+/*/ATLAS:DATA*/
+</script>
+
+<script>
+"use strict";
+const SVGNS = "http://www.w3.org/2000/svg";
+const LANE = 38;
+const OFFSETS = [0.50,0.44,0.56,0.38,0.62,0.32,0.68,0.26,0.74,0.20,0.80,0.15,0.85,0.10,0.90];
+const DEFAULT_THEME = "okabe-ito-light";
+
+/* ---------- theme tables ---------- */
+const THEMES = JSON.parse(document.getElementById("atlas-themes").textContent);
+let CURRENT_THEME = null;
+let GROUP_COLORS = {};   // group.id -> {stroke, fill, sub}
+
+/* ---------- data loading (embedded preferred for file://) ---------- */
+function loadData(){
+  const embedded = document.getElementById("workflow-data");
+  let txt = embedded.textContent;
+  // strip ONLY the wrapping sentinels (anchored), so the markers can also appear inside data values
+  txt = txt.replace(/^\s*\/\*ATLAS:DATA\*\/\s*/, "").replace(/\s*\/\*\/ATLAS:DATA\*\/\s*$/, "");
+  return JSON.parse(txt);
+}
+
+/* ---------- color helpers (hybrid lane resolution, SPEC §5.4–5.5) ---------- */
+function isHex(s){ return typeof s === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s.trim()); }
+function hexToRgb(h){ h = h.replace("#",""); if(h.length===3) h = h.split("").map(x=>x+x).join("");
+  const n = parseInt(h,16); return [ (n>>16)&255, (n>>8)&255, n&255 ]; }
+function rgbToHex(a){ return "#" + a.map(v => Math.round(clamp(v,0,255)).toString(16).padStart(2,"0")).join(""); }
+function mix(a,b,t){ const A=hexToRgb(a), B=hexToRgb(b); return rgbToHex([0,1,2].map(i => A[i]*(1-t)+B[i]*t)); }
+
+function applyTheme(id){
+  const t = THEMES[id] || THEMES[DEFAULT_THEME];
+  const c = t.chrome, r = document.documentElement.style;
+  r.setProperty("--bg", c.bg);
+  r.setProperty("--surface", c.surface);
+  r.setProperty("--bg-2", c.panel);
+  r.setProperty("--panel", c.panel);
+  r.setProperty("--line", c.line);
+  r.setProperty("--grid", c.grid);
+  r.setProperty("--text", c.text);
+  r.setProperty("--muted", c.muted);
+  r.setProperty("--edge", c.edge);
+  r.setProperty("--edge-active", c["edge-active"]);
+  r.setProperty("--edge-active-glow", c["edge-active-glow"]);
+  document.documentElement.dataset.theme = t.id;
+  CURRENT_THEME = t;
+  return t;
+}
+
+// resolve each group's (stroke, fill, sub) by per-channel precedence: explicit override > theme derive
+function resolveGroups(){
+  GROUP_COLORS = {};
+  const surface = CURRENT_THEME.chrome.surface, text = CURRENT_THEME.chrome.text;
+  const lanes = CURRENT_THEME.lanes;
+  DATA.groups.forEach((g, i) => {
+    const accent = isHex(g.stroke) ? g.stroke.trim() : lanes[i % lanes.length];
+    const stroke = g.stroke || accent;
+    const fill   = g.fill || (isHex(accent) ? mix(accent, surface, 0.86) : accent);
+    const sub    = g.sub  || (isHex(accent) ? mix(accent, text, 0.45) : CURRENT_THEME.chrome.muted);
+    GROUP_COLORS[g.id] = { stroke, fill, sub };
+  });
+}
+
+/* ---------- small helpers ---------- */
+function el(tag, attrs, parent){
+  const e = document.createElementNS(SVGNS, tag);
+  if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function dist(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return Math.sqrt(dx*dx+dy*dy); }
+
+/* ---------- globals ---------- */
+let DATA, NODES = {}, GROUPS = {};
+let svg, stage, tooltip;   // assigned on DOM-ready (robust for file:// / re-saved pages)
+let defsEl, gridLayer, baseEdgeLayer, flowEdgeLayer, nodeLayer, badgeLayer;
+let nodeEls = {};
+let view = { x:0, y:0, w:1500, h:900 };
+let baseView = { x:0, y:0, w:1500, h:900 };
+let activeFlowId = null;
+let focusedStepIdx = null;
+let edgeIndex = [];
+let stepToEdge = {};
+let liEls = {};
+let animRAF = null;
+
+/* ---------- init ---------- */
+function init(){
+  DATA = loadData();
+  DATA.nodes.forEach(n => NODES[n.id] = n);
+  DATA.groups.forEach(g => GROUPS[g.id] = g);
+
+  // theme: from <html data-theme>, fall back to default
+  applyTheme(document.documentElement.dataset.theme || DEFAULT_THEME);
+  resolveGroups();
+
+  baseView = { x:0, y:0, w:DATA.viewBox.w, h:DATA.viewBox.h };
+  view = Object.assign({}, baseView);
+  svg.setAttribute("viewBox", `0 0 ${baseView.w} ${baseView.h}`);
+  setView(view);
+
+  // header from meta
+  document.title = DATA.meta.title || "Workflow Atlas";
+  document.getElementById("brand-title").textContent = DATA.meta.title || "Workflow Atlas";
+  document.getElementById("brand-sub").textContent =
+    `${DATA.nodes.length} nodes × ${DATA.flows.length} flows` + (DATA.meta.repo ? ` — ${DATA.meta.repo}` : "");
+
+  defsEl = el("defs", null, svg);
+  buildArrowMarkers();
+  gridLayer      = el("g", { class:"grid-layer" }, svg);
+  baseEdgeLayer  = el("g", { class:"base-edge-layer" }, svg);
+  flowEdgeLayer  = el("g", { class:"flow-edge-layer" }, svg);
+  nodeLayer      = el("g", { class:"node-layer" }, svg);
+  badgeLayer     = el("g", { class:"badge-layer" }, svg);   // last → above nodes
+
+  buildGrid();
+  buildBaseEdges();
+  buildNodes();
+  buildChips();
+  buildThemeSelect();
+  wireInteractions();
+
+  const hashed = flowFromHash();
+  if(hashed){
+    // deep-link: when a step is given, skip the flow-fit (it would be cancelled by the step pan)
+    selectFlow(hashed.id, hashed.step != null ? "none" : "flow");
+    if(hashed.step != null) gotoStep(hashed.step - 1);
+  } else if(DATA.flows.length){
+    selectFlow(DATA.flows[0].id, "all");
+  } else {
+    clearFlow();   // no flows → overview only, never crash on DATA.flows[0]
+  }
+  window.addEventListener("hashchange", () => {
+    const f = flowFromHash();
+    if(f){ selectFlow(f.id, f.step != null ? "none" : "flow"); if(f.step != null) gotoStep(f.step - 1); }
+  });
+}
+
+/* ---------- bootstrap (query DOM elements once it's ready) ---------- */
+function boot(){
+  svg = document.getElementById("canvas");
+  stage = document.getElementById("stage");
+  tooltip = document.getElementById("tooltip");
+  init();
+}
+if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+
+// #flow=<id|n>, #flow=<id>:<step>, or #<id>
+function flowFromHash(){
+  const h = decodeURIComponent(location.hash.replace(/^#/, "")).trim();
+  if(!h) return null;
+  let v = h.includes("=") ? h.split("=")[1] : h;
+  let step = null;
+  if(v.includes(":")){ const parts = v.split(":"); v = parts[0]; const s = parseInt(parts[1],10); if(!isNaN(s)) step = s; }
+  let id = null;
+  if(/^\d+$/.test(v)){ const f = DATA.flows[+v - 1]; id = f ? f.id : null; }
+  else id = DATA.flows.some(f => f.id === v) ? v : null;
+  return id ? { id, step } : null;
+}
+
+/* ---------- defs (arrow markers, theme-colored) ---------- */
+function buildArrowMarkers(){
+  defsEl.textContent = "";
+  const cs = getComputedStyle(document.documentElement);
+  const edgeCol = (cs.getPropertyValue("--edge").trim()) || "#3a4452";
+  const edgeActive = (cs.getPropertyValue("--edge-active").trim()) || "#ffd166";
+  const mkArrow = (id, color, scale) => {
+    const m = el("marker", { id, viewBox:"0 0 10 10", refX:"9", refY:"5",
+      markerWidth:String(scale), markerHeight:String(scale), orient:"auto-start-reverse" }, defsEl);
+    el("path", { d:"M0,0 L10,5 L0,10 z", fill:color }, m);
+  };
+  mkArrow("arrow-base", edgeCol, 6);
+  mkArrow("arrow-active", edgeActive, 7.5);
+}
+
+/* ---------- grid ---------- */
+function buildGrid(){
+  const H = baseView.h;
+  DATA.columns.forEach(c => {
+    const t = el("text", { x:c.x, y:42, "text-anchor":"middle", class:"col-head" }, gridLayer);
+    t.textContent = c.label;
+    if(c.divider != null){
+      el("line", { x1:c.divider, y1:64, x2:c.divider, y2:H-20, class:"col-div" }, gridLayer);
+    }
+  });
+}
+
+/* ---------- nodes ---------- */
+function buildNodes(){
+  DATA.nodes.forEach(n => {
+    const gc = GROUP_COLORS[n.group] || { stroke:"#888", fill:"#222", sub:"#aaa" };
+    const node = el("g", { class:"node", "data-id":n.id,
+      style:`--gstroke:${gc.stroke}; --nsub:${gc.sub}` }, nodeLayer);
+    node.setAttribute("transform", `translate(${n.x},${n.y})`);
+    el("rect", { class:"node-rect", x:0, y:0, width:n.w, height:n.h, rx:8,
+      fill:gc.fill, stroke:gc.stroke, "stroke-width":1.5 }, node);
+    const t1 = el("text", { class:"node-title", x:13, y:23 }, node);
+    t1.textContent = n.title;
+    if(n.subtitle){
+      const t2 = el("text", { class:"node-sub", x:13, y:41 }, node);
+      t2.textContent = n.subtitle;
+    }
+    nodeEls[n.id] = node;
+  });
+}
+
+// re-apply resolved colors to existing node DOM (used on live theme switch)
+function recolorNodes(){
+  resolveGroups();
+  DATA.nodes.forEach(n => {
+    const gc = GROUP_COLORS[n.group], node = nodeEls[n.id];
+    if(!gc || !node) return;
+    node.style.setProperty("--gstroke", gc.stroke);
+    node.style.setProperty("--nsub", gc.sub);
+    const rect = node.querySelector(".node-rect");
+    rect.setAttribute("fill", gc.fill);
+    rect.setAttribute("stroke", gc.stroke);
+  });
+}
+
+/* ---------- geometry ---------- */
+function nodeRect(n){ return { x:n.x, y:n.y, w:n.w, h:n.h, cx:n.x+n.w/2, cy:n.y+n.h/2,
+  l:n.x, r:n.x+n.w, t:n.y, b:n.y+n.h }; }
+function sameColumn(a,b){ return Math.abs(a.x - b.x) < 1; }
+
+function edgeGeom(aId, bId, lane){
+  const A = nodeRect(NODES[aId]), B = nodeRect(NODES[bId]);
+  let sx,sy,ex,ey,c1x,c1y,c2x,c2y;
+  if(sameColumn(NODES[aId], NODES[bId])){
+    if(A.cy <= B.cy){ sx=A.cx; sy=A.b; ex=B.cx; ey=B.t; }
+    else            { sx=A.cx; sy=A.t; ex=B.cx; ey=B.b; }
+    const dy = ey - sy;
+    c1x = sx + lane; c1y = sy + dy*0.40;
+    c2x = ex + lane; c2y = ey - dy*0.40;
+  }else{
+    if(A.cx < B.cx){ sx=A.r; sy=A.cy; ex=B.l; ey=B.cy; }
+    else           { sx=A.l; sy=A.cy; ex=B.r; ey=B.cy; }
+    const dx = ex - sx;
+    c1x = sx + dx*0.40; c1y = sy + lane;
+    c2x = ex - dx*0.40; c2y = ey + lane;
+  }
+  return { d:`M ${sx} ${sy} C ${c1x} ${c1y} ${c2x} ${c2y} ${ex} ${ey}`, sx,sy,ex,ey };
+}
+
+function laneFor(aId, bId, set){
+  const rev = set.has(bId + " " + aId);
+  if(!rev) return 0;
+  return (aId < bId) ? LANE : -LANE;
+}
+
+/* ---------- base edges ---------- */
+let BASE_EDGE_SET = new Set();   // all directed (from,to) pairs across ALL flows (lane reference)
+function buildBaseEdges(){
+  BASE_EDGE_SET = new Set();
+  DATA.flows.forEach(f => f.steps.forEach(s => BASE_EDGE_SET.add(s.from + " " + s.to)));
+  BASE_EDGE_SET.forEach(key => {
+    const [a,b] = key.split(" ");
+    if(!NODES[a] || !NODES[b]) return;
+    const lane = laneFor(a, b, BASE_EDGE_SET);
+    const g = edgeGeom(a, b, lane);
+    el("path", { class:"edge base-edge", d:g.d }, baseEdgeLayer);
+  });
+}
+
+/* ---------- flow selection ---------- */
+function selectFlow(flowId, fitMode){
+  const flow = DATA.flows.find(f => f.id === flowId);
+  if(!flow) return;
+  activeFlowId = flowId;
+  focusedStepIdx = null;
+  clearFocusClasses();
+
+  const map = new Map();
+  const order = [];
+  flow.steps.forEach((s, i) => {
+    if(!NODES[s.from] || !NODES[s.to]) return;   // skip steps referencing unknown nodes (inline-edit safety)
+    const key = s.from + " " + s.to;
+    let e = map.get(key);
+    if(!e){ e = { key, from:s.from, to:s.to, steps:[], cycle:0 }; map.set(key, e); order.push(e); }
+    e.steps.push({ idx:i, step:s });
+  });
+  const edges = order;
+
+  flowEdgeLayer.textContent = "";
+  badgeLayer.textContent = "";
+  edgeIndex = edges;
+  stepToEdge = {};
+  liEls = {};
+
+  const inFlow = new Set();
+  edges.forEach(e => { inFlow.add(e.from); inFlow.add(e.to); });
+  for(const id in nodeEls){
+    nodeEls[id].classList.toggle("in-flow", inFlow.has(id));
+    nodeEls[id].classList.toggle("dim", !inFlow.has(id));
+    nodeEls[id].classList.remove("endpoint");
+  }
+  baseEdgeLayer.style.display = "none";
+
+  edges.forEach(e => {
+    const lane = laneFor(e.from, e.to, BASE_EDGE_SET);   // same set as base edges → highlight overlaps base
+    const g = edgeGeom(e.from, e.to, lane);
+    const p = el("path", { class:"edge flow-edge", d:g.d }, flowEdgeLayer);
+    e.pathEl = p;
+    const len = p.getTotalLength();
+    e.len = len;
+    e.midPt = p.getPointAtLength(len * 0.5);
+    e.steps.forEach(st => stepToEdge[st.idx] = e);
+  });
+
+  placeBadges(edges);
+  buildAnnotation(flow, edges);
+
+  if(fitMode === "all") animateView(baseView, 420);
+  else if(fitMode === "flow") fitToNodes(Array.from(inFlow), 60);
+
+  document.querySelectorAll(".chip").forEach(c =>
+    c.classList.toggle("active", c.dataset.flow === flowId));
+}
+
+function clearFlow(){
+  activeFlowId = null;
+  focusedStepIdx = null;
+  clearFocusClasses();
+  flowEdgeLayer.textContent = "";
+  badgeLayer.textContent = "";
+  edgeIndex = []; stepToEdge = {}; liEls = {};
+  baseEdgeLayer.style.display = "";
+  for(const id in nodeEls){ nodeEls[id].classList.remove("in-flow","dim","endpoint"); }
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("anno-ic").textContent = "🗺️";
+  document.getElementById("anno-title").textContent = "概要モード";
+  document.getElementById("anno-desc").textContent =
+    `全 ${DATA.nodes.length} ノードと全フローのエッジを表示中。上部のチップ、または数字キー 1–9 / 0 でフローを選択してください。`;
+  document.getElementById("anno-scroll").innerHTML =
+    '<div class="anno-empty">フローを選ぶと、<b>1 エッジ = 1 バッジ</b>のステップ番号と注釈リストが表示されます。<br><br>' +
+    '<b>← →</b> (または <b>↑ ↓</b>) でステップを送る／戻す、<b>Home/End</b> で先頭／末尾へ。' +
+    'バッジ／注釈クリックでも該当ステップへ pan します。</div>';
+}
+
+/* ---------- badge placement ---------- */
+function placeBadges(edges){
+  const placed = [];
+  const margin = 4;
+  const ordered = edges.slice().sort((a,b) => {
+    const am = a.steps.length > 1 ? 0 : 1;
+    const bm = b.steps.length > 1 ? 0 : 1;
+    if(am !== bm) return am - bm;
+    return a.len - b.len;
+  });
+
+  ordered.forEach(e => {
+    const label = badgeLabel(e.steps.map(s => s.idx + 1));
+    const badge = buildBadgeDOM(e, label);
+    e.badgeEl = badge.outer;
+    const bw = badge.w, bh = badge.h;
+
+    let best = null;
+    for(const t of OFFSETS){
+      const pt = e.pathEl.getPointAtLength(e.len * t);
+      const cand = { x:pt.x, y:pt.y, w:bw, h:bh };
+      const overlapsNode = rectHitsNodes(cand.x - bw/2, cand.y - bh/2, bw, bh, margin);
+      let minBadge = Infinity;
+      for(const p of placed){
+        const nx = (cand.x - p.x) / (((bw + p.w)/2) + 6);
+        const ny = (cand.y - p.y) / (((bh + p.h)/2) + 6);
+        const d = Math.sqrt(nx*nx + ny*ny);
+        if(d < minBadge) minBadge = d;
+      }
+      const score = (overlapsNode ? -3.5 : 0) + (minBadge === Infinity ? 2 : Math.min(minBadge, 2));
+      if(!best || score > best.score) best = { score, pt, t, overlapsNode };
+    }
+
+    let px = best.pt.x, py = best.pt.y;
+    if(best.overlapsNode || pointInNodes(px, py, margin)){
+      const base = e.len * best.t;
+      const step = 5;
+      let found = null;
+      for(let k = 1; k <= 60; k++){
+        for(const dir of [1,-1]){
+          const L = clamp(base + dir*k*step, 4, e.len - 4);
+          const pt = e.pathEl.getPointAtLength(L);
+          if(!rectHitsNodes(pt.x - bw/2, pt.y - bh/2, bw, bh, margin)){ found = pt; break; }
+        }
+        if(found) break;
+      }
+      if(found){ px = found.x; py = found.y; }
+    }
+
+    badge.outer.setAttribute("transform", `translate(${px},${py})`);
+    e.badgePt = { x:px, y:py };
+    placed.push({ x:px, y:py, w:bw, h:bh });
+
+    const dm = dist(px, py, e.midPt.x, e.midPt.y);
+    if(dm > 34){
+      el("path", { class:"tether", d:`M ${px} ${py} L ${e.midPt.x} ${e.midPt.y}` }, badge.tetherHost);
+    }
+  });
+
+  ordered.forEach(e => badgeLayer.appendChild(e.badgeEl));
+}
+
+function badgeLabel(nums){
+  nums = nums.slice().sort((a,b)=>a-b);
+  if(nums.length === 1) return String(nums[0]);
+  if(nums.length <= 5) return nums.join(" · ");
+  return `${nums[0]}–${nums[nums.length-1]} (${nums.length})`;
+}
+
+function buildBadgeDOM(edge, label){
+  const outer = el("g", { class:"edge-step-badge" });
+  badgeLayer.appendChild(outer);
+  const halo = el("ellipse", { class:"edge-step-halo", cx:0, cy:0, rx:1, ry:1 }, outer);
+  const hit  = el("rect", { class:"edge-step-hit" }, outer);
+  const scale = el("g", { class:"edge-step-scale" }, outer);
+  const pill = el("rect", { class:"edge-step-pill" }, scale);
+  const txt  = el("text", { x:0, y:0, "dominant-baseline":"central", "text-anchor":"middle" }, scale);
+  txt.textContent = label;
+
+  const tb = txt.getBBox();
+  const h = 22;
+  const w = Math.max(22, tb.width + 16);
+  pill.setAttribute("x", -w/2); pill.setAttribute("y", -h/2);
+  pill.setAttribute("width", w); pill.setAttribute("height", h);
+  pill.setAttribute("rx", h/2);
+  halo.setAttribute("rx", w/2 + 4); halo.setAttribute("ry", h/2 + 4);
+  hit.setAttribute("x", -w/2 - 8); hit.setAttribute("y", -h/2 - 8);
+  hit.setAttribute("width", w + 16); hit.setAttribute("height", h + 16);
+
+  outer.addEventListener("mouseover", () => showTooltipForEdge(edge));
+  outer.addEventListener("mousemove", moveTooltip);
+  outer.addEventListener("mouseout", (ev) => {
+    if(outer.contains(ev.relatedTarget)) return;
+    hideTooltip();
+  });
+  outer.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const i = edge.steps[edge.cycle % edge.steps.length].idx;
+    edge.cycle++;
+    focusStep(i, true);
+  });
+
+  return { outer, w, h, tetherHost: badgeLayer };
+}
+
+/* ---------- node hit-testing ---------- */
+function rectHitsNodes(x,y,w,h,m){
+  for(const id in NODES){
+    const n = NODES[id];
+    if(x < n.x+n.w+m && x+w > n.x-m && y < n.y+n.h+m && y+h > n.y-m) return true;
+  }
+  return false;
+}
+function pointInNodes(px,py,m){
+  for(const id in NODES){
+    const n = NODES[id];
+    if(px > n.x-m && px < n.x+n.w+m && py > n.y-m && py < n.y+n.h+m) return true;
+  }
+  return false;
+}
+
+/* ---------- annotation panel ---------- */
+function buildAnnotation(flow, edges){
+  document.getElementById("anno-ic").textContent = flow.icon || "▸";
+  document.getElementById("anno-title").textContent = flow.name;
+  document.getElementById("anno-desc").textContent = flow.description || "";
+  const scroll = document.getElementById("anno-scroll");
+  scroll.innerHTML = "";
+  const ol = document.createElement("ol");
+  ol.className = "steps";
+  flow.steps.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = "step";
+    li.dataset.idx = i;
+    const fromN = NODES[s.from], toN = NODES[s.to];
+    const edge = document.createElement("div");
+    edge.className = "step-edge";
+    edge.innerHTML = `<span class="ep"></span><span class="arr">→</span><span class="ep"></span>`;
+    edge.querySelectorAll(".ep")[0].textContent = fromN ? fromN.title : s.from;
+    edge.querySelectorAll(".ep")[1].textContent = toN ? toN.title : s.to;
+    const passes = document.createElement("div");
+    passes.className = "step-passes";
+    passes.textContent = s.passes;
+    li.appendChild(edge); li.appendChild(passes);
+    if(s.note){
+      const note = document.createElement("div");
+      note.className = "step-note";
+      note.textContent = s.note;
+      li.appendChild(note);
+    }
+    li.addEventListener("click", () => {
+      const e = stepToEdge[i]; if(e) e.cycle = e.steps.findIndex(st => st.idx === i) + 1;
+      focusStep(i, true);
+    });
+    ol.appendChild(li);
+    liEls[i] = li;
+  });
+  scroll.appendChild(ol);
+}
+
+/* ---------- focus (PIKAPIKA) + stepping ---------- */
+function clearFocusClasses(){
+  document.querySelectorAll(".edge-step-badge.focused").forEach(b => b.classList.remove("focused"));
+  document.querySelectorAll(".flow-edge.focused-edge").forEach(p => p.classList.remove("focused-edge"));
+  document.querySelectorAll(".node.endpoint").forEach(n => n.classList.remove("endpoint"));
+  document.querySelectorAll("li.step.focused").forEach(l => l.classList.remove("focused"));
+}
+function focusStep(idx, doPan){
+  const e = stepToEdge[idx];
+  if(!e) return;
+  focusedStepIdx = idx;
+  clearFocusClasses();
+  if(e.badgeEl) e.badgeEl.classList.add("focused");
+  if(e.pathEl) e.pathEl.classList.add("focused-edge");
+  if(nodeEls[e.from]) nodeEls[e.from].classList.add("endpoint");
+  if(nodeEls[e.to]) nodeEls[e.to].classList.add("endpoint");
+  const li = liEls[idx];
+  if(li){
+    li.classList.remove("focused");
+    void li.offsetWidth;
+    li.classList.add("focused");
+    li.scrollIntoView({ behavior:"smooth", block:"nearest" });
+  }
+  if(doPan && e.badgePt) panTo(e.badgePt.x, e.badgePt.y);
+}
+
+// keyboard step navigation (SPEC §7.3): walk flow.steps order, clamp at ends
+function stepCount(){ const f = DATA.flows.find(x => x.id === activeFlowId); return f ? f.steps.length : 0; }
+function gotoStep(idx){
+  if(!activeFlowId) return;
+  const n = stepCount();
+  if(n === 0) return;
+  idx = clamp(idx, 0, n - 1);
+  const e = stepToEdge[idx];
+  if(e) e.cycle = e.steps.findIndex(st => st.idx === idx) + 1;
+  focusStep(idx, true);
+}
+
+/* ---------- tooltip ---------- */
+let lastMouse = { x:0, y:0 };
+function showTooltipForEdge(edge){
+  if(!activeFlowId) return;
+  const flow = DATA.flows.find(f => f.id === activeFlowId);
+  let html = `<div class="tt-flow">${escapeHtml((flow.icon ? flow.icon + " " : "") + flow.name)}</div>`;
+  edge.steps.forEach(st => {
+    const s = st.step;
+    const fromN = NODES[s.from], toN = NODES[s.to];
+    html += `<div class="tt-step">`;
+    html += `<div class="tt-edge"><span class="tt-num">#${st.idx+1}</span> `;
+    html += `<span class="chip2">${escapeHtml(fromN?fromN.title:s.from)}</span>`;
+    html += `<span class="arr">→</span>`;
+    html += `<span class="chip2">${escapeHtml(toN?toN.title:s.to)}</span></div>`;
+    html += `<div class="tt-pass">${escapeHtml(s.passes)}</div>`;
+    if(s.note) html += `<div class="tt-note">${escapeHtml(s.note)}</div>`;
+    html += `</div>`;
+  });
+  tooltip.innerHTML = html;
+  tooltip.style.display = "block";
+  positionTooltip();
+}
+function moveTooltip(ev){ lastMouse = { x:ev.clientX, y:ev.clientY }; positionTooltip(); }
+function positionTooltip(){
+  if(tooltip.style.display !== "block") return;
+  const pad = 16, vw = window.innerWidth, vh = window.innerHeight;
+  const r = tooltip.getBoundingClientRect();
+  let x = lastMouse.x + pad, y = lastMouse.y + pad;
+  if(x + r.width > vw - 8) x = lastMouse.x - pad - r.width;
+  if(y + r.height > vh - 8) y = lastMouse.y - pad - r.height;
+  tooltip.style.left = Math.max(8, x) + "px";
+  tooltip.style.top  = Math.max(8, y) + "px";
+}
+function hideTooltip(){ tooltip.style.display = "none"; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- view (zoom / pan) ---------- */
+function setView(v){
+  view = v;
+  svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+}
+function clientToSvg(cx, cy){
+  const r = svg.getBoundingClientRect();
+  return { x: view.x + ((cx - r.left)/r.width) * view.w,
+           y: view.y + ((cy - r.top)/r.height) * view.h };
+}
+function zoomAt(cx, cy, factor){
+  cancelAnim();
+  const piv = clientToSvg(cx, cy);
+  let nw = clamp(view.w * factor, 240, 4200);
+  let nh = nw * (baseView.h / baseView.w);
+  const k = nw / view.w;
+  const nx = piv.x - (piv.x - view.x) * k;
+  const ny = piv.y - (piv.y - view.y) * k;
+  setView({ x:nx, y:ny, w:nw, h:nh });
+}
+function panTo(svgx, svgy){
+  animateView({ x: svgx - view.w/2, y: svgy - view.h/2, w: view.w, h: view.h }, 360);
+}
+function fitToNodes(ids, pad){
+  let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+  ids.forEach(id => { const n = NODES[id]; if(!n) return;
+    minx=Math.min(minx,n.x); miny=Math.min(miny,n.y);
+    maxx=Math.max(maxx,n.x+n.w); maxy=Math.max(maxy,n.y+n.h); });
+  if(minx > maxx) return;
+  let bw = (maxx-minx) + pad*2, bh = (maxy-miny) + pad*2;
+  const cx = (minx+maxx)/2, cy = (miny+maxy)/2;
+  const aspect = baseView.w / baseView.h;
+  if(bw / bh > aspect) bh = bw / aspect; else bw = bh * aspect;
+  animateView({ x:cx-bw/2, y:cy-bh/2, w:bw, h:bh }, 420);
+}
+function cancelAnim(){ if(animRAF){ cancelAnimationFrame(animRAF); animRAF = null; } }
+function animateView(target, dur){
+  cancelAnim();
+  const start = Object.assign({}, view);
+  const t0 = performance.now();
+  const ease = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  function frame(now){
+    const p = clamp((now - t0)/dur, 0, 1);
+    const e = ease(p);
+    setView({ x:start.x+(target.x-start.x)*e, y:start.y+(target.y-start.y)*e,
+              w:start.w+(target.w-start.w)*e, h:start.h+(target.h-start.h)*e });
+    if(p < 1) animRAF = requestAnimationFrame(frame); else animRAF = null;
+  }
+  animRAF = requestAnimationFrame(frame);
+}
+
+/* ---------- chips ---------- */
+function buildChips(){
+  const host = document.getElementById("chips");
+  DATA.flows.forEach((f, i) => {
+    const c = document.createElement("div");
+    c.className = "chip";
+    c.dataset.flow = f.id;
+    const key = i < 9 ? String(i+1) : (i === 9 ? "0" : "");
+    c.innerHTML = `<span class="ic"></span><span class="nm"></span>` + (key ? `<span class="kk">${key}</span>` : "");
+    c.querySelector(".ic").textContent = f.icon || "▸";
+    c.querySelector(".nm").textContent = f.name;
+    c.addEventListener("click", () => selectFlow(f.id, "flow"));
+    host.appendChild(c);
+  });
+}
+
+/* ---------- theme switcher ---------- */
+function buildThemeSelect(){
+  const sel = document.getElementById("theme-select");
+  Object.keys(THEMES).forEach(id => {
+    const o = document.createElement("option");
+    o.value = id; o.textContent = THEMES[id].name || id;
+    if(id === CURRENT_THEME.id) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", () => {
+    applyTheme(sel.value);
+    recolorNodes();
+    buildArrowMarkers();
+  });
+}
+
+/* ---------- interactions ---------- */
+function wireInteractions(){
+  stage.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const factor = ev.deltaY > 0 ? 1.12 : 1/1.12;
+    zoomAt(ev.clientX, ev.clientY, factor);
+  }, { passive:false });
+
+  let dragging = false, last = null;
+  stage.addEventListener("mousedown", (ev) => {
+    if(ev.button !== 0) return;
+    dragging = true; last = { x:ev.clientX, y:ev.clientY };
+    stage.classList.add("panning"); cancelAnim();
+  });
+  window.addEventListener("mousemove", (ev) => {
+    if(!dragging) return;
+    const r = svg.getBoundingClientRect();
+    const dx = (ev.clientX - last.x)/r.width * view.w;
+    const dy = (ev.clientY - last.y)/r.height * view.h;
+    last = { x:ev.clientX, y:ev.clientY };
+    setView({ x:view.x - dx, y:view.y - dy, w:view.w, h:view.h });
+  });
+  window.addEventListener("mouseup", () => { dragging = false; stage.classList.remove("panning"); });
+
+  svg.addEventListener("click", () => hideTooltip());
+
+  document.querySelectorAll(".zoomctl button").forEach(b => {
+    b.addEventListener("click", () => {
+      const r = svg.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      if(b.dataset.z === "in") zoomAt(cx, cy, 1/1.25);
+      else if(b.dataset.z === "out") zoomAt(cx, cy, 1.25);
+      else animateView(baseView, 420);
+    });
+  });
+
+  window.addEventListener("keydown", (ev) => {
+    if(ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if(ev.target && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+    const k = ev.key;
+    if(k >= "1" && k <= "9"){ const i = +k - 1; if(DATA.flows[i]) selectFlow(DATA.flows[i].id, "flow"); }
+    else if(k === "0"){ if(DATA.flows[9]) selectFlow(DATA.flows[9].id, "flow"); }
+    else if(k === "f" || k === "F"){ animateView(baseView, 420); }
+    else if(k === "+" || k === "="){ const r=svg.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1/1.2); }
+    else if(k === "-" || k === "_"){ const r=svg.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); }
+    // ---- step navigation (only when a flow is active; clamp at ends) ----
+    else if(activeFlowId && (k === "ArrowRight" || k === "ArrowDown")){
+      ev.preventDefault(); gotoStep(focusedStepIdx == null ? 0 : focusedStepIdx + 1);
+    }
+    else if(activeFlowId && (k === "ArrowLeft" || k === "ArrowUp")){
+      ev.preventDefault(); gotoStep(focusedStepIdx == null ? stepCount() - 1 : focusedStepIdx - 1);
+    }
+    else if(activeFlowId && k === "Home"){ ev.preventDefault(); gotoStep(0); }
+    else if(activeFlowId && k === "End"){ ev.preventDefault(); gotoStep(stepCount() - 1); }
+    else if(k === "Escape"){
+      if(focusedStepIdx != null){ focusedStepIdx = null; clearFocusClasses(); }
+      else if(activeFlowId){ clearFlow(); }
+    }
+  });
+
+  window.addEventListener("resize", () => positionTooltip());
+}
+</script>
+</body>
+</html>

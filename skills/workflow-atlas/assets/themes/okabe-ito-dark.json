@@ -1,0 +1,11 @@
+{
+  "id": "okabe-ito-dark",
+  "name": "Okabe-Ito (Dark)",
+  "mode": "dark",
+  "chrome": {
+    "bg": "#0c1117", "surface": "#161d27", "panel": "#11171f",
+    "line": "#2a3340", "grid": "#1c2530", "text": "#d6dde6", "muted": "#8a94a3",
+    "edge": "#3a4452", "edge-active": "#56B4E9", "edge-active-glow": "rgba(86,180,233,0.40)"
+  },
+  "lanes": ["#56B4E9", "#009E73", "#E69F00", "#CC79A7", "#0072B2", "#D55E00", "#F0E442"]
+}

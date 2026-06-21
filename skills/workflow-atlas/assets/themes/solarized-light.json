@@ -1,0 +1,11 @@
+{
+  "id": "solarized-light",
+  "name": "Solarized Light",
+  "mode": "light",
+  "chrome": {
+    "bg": "#fdf6e3", "surface": "#ffffff", "panel": "#eee8d5",
+    "line": "#93a1a1", "grid": "#e3dcc6", "text": "#073642", "muted": "#657b83",
+    "edge": "#93a1a1", "edge-active": "#268bd2", "edge-active-glow": "rgba(38,139,210,0.30)"
+  },
+  "lanes": ["#268bd2", "#859900", "#b58900", "#d33682", "#2aa198", "#dc322f", "#6c71c4"]
+}

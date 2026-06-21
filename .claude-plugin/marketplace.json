@@ -1,0 +1,16 @@
+{
+  "name": "workflow-atlas",
+  "metadata": {
+    "description": "Specify a project's state nodes and operation flows as JSON, and read them as a single self-contained interactive HTML specification — state × operation, not boxes × arrows."
+  },
+  "owner": {
+    "name": "fujiya228",
+    "url": "https://github.com/fujiya228"
+  },
+  "plugins": [
+    {
+      "name": "workflow-atlas",
+      "source": "./"
+    }
+  ]
+}

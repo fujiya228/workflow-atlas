@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "title": "AI Agent — RAG pipeline (state × operation)",
+    "note": "Generic sample. node = state (store/buffer/actor), flow = operation (index/retrieve/generate/tool/memory). Repository-agnostic."
+  },
+  "viewBox": { "w": 1600, "h": 900 },
+  "columns": [
+    { "id": "input",    "label": "INPUT",    "x": 140,  "divider": 270 },
+    { "id": "index",    "label": "INDEX",    "x": 400,  "divider": 530 },
+    { "id": "retrieve", "label": "RETRIEVE", "x": 660,  "divider": 790 },
+    { "id": "agent",    "label": "AGENT",    "x": 920,  "divider": 1050 },
+    { "id": "tools",    "label": "TOOLS",    "x": 1180, "divider": 1310 },
+    { "id": "output",   "label": "OUTPUT",   "x": 1440, "divider": null }
+  ],
+  "groups": [
+    { "id": "input",    "label": "Input" },
+    { "id": "index",    "label": "Index" },
+    { "id": "retrieve", "label": "Retrieve" },
+    { "id": "agent",    "label": "Agent" },
+    { "id": "tools",    "label": "Tools" },
+    { "id": "output",   "label": "Output" }
+  ],
+  "nodes": [
+    { "id": "user",       "title": "User",          "subtitle": "question / goal",       "group": "input",    "x": 40,   "y": 300, "w": 200, "h": 56 },
+    { "id": "raw-docs",   "title": "Raw docs",      "subtitle": "PDF / web / markdown",  "group": "input",    "x": 40,   "y": 560, "w": 200, "h": 56 },
+    { "id": "chunks",     "title": "Chunks",        "subtitle": "split + overlap",       "group": "index",    "x": 300,  "y": 120, "w": 200, "h": 56 },
+    { "id": "embeddings", "title": "Embeddings",    "subtitle": "dense vector",          "group": "index",    "x": 300,  "y": 320, "w": 200, "h": 56 },
+    { "id": "vstore",     "title": "Vector store",  "subtitle": "ANN index (HNSW/IVF)",  "group": "index",    "x": 300,  "y": 520, "w": 200, "h": 56 },
+    { "id": "retriever",  "title": "Retriever",     "subtitle": "top-k / rerank",        "group": "retrieve", "x": 560,  "y": 320, "w": 200, "h": 56 },
+    { "id": "context",    "title": "Context",       "subtitle": "assembled + sources",   "group": "retrieve", "x": 560,  "y": 520, "w": 200, "h": 56 },
+    { "id": "llm",        "title": "LLM",           "subtitle": "Claude / GPT",          "group": "agent",    "x": 820,  "y": 200, "w": 200, "h": 56 },
+    { "id": "scratchpad", "title": "Scratchpad",    "subtitle": "intermediate (ReAct)",  "group": "agent",    "x": 820,  "y": 400, "w": 200, "h": 56 },
+    { "id": "memory",     "title": "Memory",        "subtitle": "conversation history",  "group": "agent",    "x": 820,  "y": 600, "w": 200, "h": 56 },
+    { "id": "tool-reg",   "title": "Tool registry", "subtitle": "function schemas",      "group": "tools",    "x": 1080, "y": 300, "w": 200, "h": 56 },
+    { "id": "tool-exec",  "title": "Tool exec",     "subtitle": "side effects / API",    "group": "tools",    "x": 1080, "y": 520, "w": 200, "h": 56 },
+    { "id": "answer",     "title": "Answer",        "subtitle": "final response",        "group": "output",   "x": 1340, "y": 300, "w": 200, "h": 56 },
+    { "id": "citations",  "title": "Citations",     "subtitle": "source snapshot",       "group": "output",   "x": 1340, "y": 520, "w": 200, "h": 56 }
+  ],
+  "flows": [
+    {
+      "id": "index", "icon": "📥", "name": "1. Build the index", "sub": "docs → chunk → embed → store",
+      "description": "Unattended preprocessing that makes the knowledge source searchable. Loader → splitter → embedding → upsert into the vector store. Not read at answer time; here we only accumulate.",
+      "steps": [
+        { "from": "raw-docs",   "to": "chunks",     "passes": "split (overlap)", "note": "loader + splitter" },
+        { "from": "chunks",     "to": "embeddings", "passes": "embed",           "note": "embedding model" },
+        { "from": "embeddings", "to": "vstore",     "passes": "upsert",          "note": "ANN (HNSW / IVF)" }
+      ]
+    },
+    {
+      "id": "retrieve", "icon": "🔎", "name": "2. Retrieve", "sub": "question → top-k context",
+      "description": "Embed the question, pull nearest neighbors from the vector store, rerank, and assemble a source-tagged context. A read-only operation — no state changes.",
+      "steps": [
+        { "from": "user",      "to": "retriever", "passes": "embed the question",  "note": "query encoder" },
+        { "from": "vstore",    "to": "retriever", "passes": "ANN neighbors (top-k)", "note": "" },
+        { "from": "retriever", "to": "context",   "passes": "rerank + assemble",   "note": "with source metadata" }
+      ]
+    },
+    {
+      "id": "generate", "icon": "💬", "name": "3. Generate (RAG)", "sub": "context-grounded answer",
+      "description": "Inject the retrieved context, generate the answer, and attach a source snapshot. Grounding suppresses hallucination.",
+      "steps": [
+        { "from": "user",    "to": "llm",       "passes": "question",          "note": "" },
+        { "from": "context", "to": "llm",       "passes": "inject context",    "note": "grounding" },
+        { "from": "llm",     "to": "answer",    "passes": "generate answer",   "note": "" },
+        { "from": "context", "to": "citations", "passes": "source snapshot",   "note": "{source, score}" }
+      ]
+    },
+    {
+      "id": "tool-loop", "icon": "🛠️", "name": "4. Tool calls (agent loop)", "sub": "ReAct: think → call → observe",
+      "description": "When an external action is needed, the LLM thinks (scratchpad) → selects a tool → executes → reads the observation, looping until it converges.",
+      "steps": [
+        { "from": "llm",      "to": "scratchpad", "passes": "think (ReAct)",        "note": "intermediate step" },
+        { "from": "llm",      "to": "tool-reg",   "passes": "select tool",          "note": "function calling" },
+        { "from": "tool-reg", "to": "tool-exec",  "passes": "arguments (JSON)",     "note": "" },
+        { "from": "tool-exec","to": "llm",        "passes": "result (observation)", "note": "loop until convergence" }
+      ]
+    },
+    {
+      "id": "memory", "icon": "🧠", "name": "5. Memory", "sub": "save turn → inject next turn",
+      "description": "Persist the finalized answer into conversation history and inject it into the LLM on the next turn. The short-term memory cycle.",
+      "steps": [
+        { "from": "answer", "to": "memory", "passes": "save turn",        "note": "" },
+        { "from": "memory", "to": "llm",    "passes": "inject history",   "note": "next turn" }
+      ]
+    },
+    {
+      "id": "deliver", "icon": "📤", "name": "6. Deliver", "sub": "answer + citations → user",
+      "description": "Return the final answer and its sources to the user. Output with no writeback.",
+      "steps": [
+        { "from": "answer",    "to": "user", "passes": "final answer",  "note": "" },
+        { "from": "citations", "to": "user", "passes": "source links",  "note": "no writeback" }
+      ]
+    }
+  ]
+}

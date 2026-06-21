@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workflow Atlas — gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg:#F8FAFC; --surface:#FFFFFF; --line:#CBD5E1; --text:#111827; --muted:#64748B;
+    --accent:#0072B2;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif; line-height:1.6; }
+  .wrap{ max-width:880px; margin:0 auto; padding:48px 20px 80px; }
+  .topbar{ display:flex; align-items:center; gap:10px; }
+  .topbar .spacer{ flex:1; }
+  .langtog{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .langtog button{ border:0; background:var(--surface); color:var(--muted); padding:5px 12px;
+    font-size:12px; cursor:pointer; font-weight:600; }
+  .langtog button.on{ background:var(--accent); color:#fff; }
+  header h1{ font-size:30px; margin:14px 0 6px; letter-spacing:.01em; }
+  header h1 .glyph{ color:var(--accent); }
+  header .tag{ color:var(--muted); font-size:15px; margin:0 0 8px; }
+  header .lead{ font-size:14px; max-width:62ch; }
+  .lead code{ background:#EEF2F6; border:1px solid var(--line); border-radius:4px; padding:0 5px; font-size:12.5px; }
+  h2{ font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+    margin:44px 0 14px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; }
+  a.card{ display:block; text-decoration:none; color:inherit; background:var(--surface);
+    border:1px solid var(--line); border-radius:12px; padding:16px; transition:all .15s; }
+  a.card:hover{ border-color:var(--accent); box-shadow:0 4px 16px rgba(0,114,178,0.12); transform:translateY(-1px); }
+  a.card .ic{ font-size:22px; }
+  a.card .nm{ font-weight:700; font-size:15px; margin:6px 0 3px; }
+  a.card .ds{ color:var(--muted); font-size:12.5px; }
+  a.card .meta{ color:var(--accent); font-size:11px; margin-top:9px; font-family:ui-monospace,Menlo,monospace; }
+  footer{ margin-top:48px; color:var(--muted); font-size:12.5px; }
+  footer a{ color:var(--accent); }
+  [data-show]{ display:none; }
+  html[data-lang="en"] [data-show="en"]{ display:revert; }
+  html[data-lang="ja"] [data-show="ja"]{ display:revert; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="spacer"></span>
+    <div class="langtog">
+      <button data-set="en" class="on">EN</button>
+      <button data-set="ja">日本語</button>
+    </div>
+  </div>
+
+  <header>
+    <h1><span class="glyph">◆</span> Workflow Atlas</h1>
+    <p class="tag" data-show="en">Specify a project's <b>states (nodes)</b> × <b>operations (flows)</b> as JSON, and read it as one interactive HTML.</p>
+    <p class="tag" data-show="ja">プロジェクトの <b>状態 (node)</b> × <b>操作 (flow)</b> を JSON で仕様化し、1枚のインタラクティブ HTML として読む。</p>
+    <p class="lead" data-show="en">Read a spec, don't draw a diagram. Each atlas is a single dependency-free HTML file.
+      Open it, press <code>1–0</code> to pick an operation, <code>← →</code> to step through it. Switch among 9 color schemes from the header dropdown.</p>
+    <p class="lead" data-show="ja">図を「描く」のではなく、仕様を「読む」。各 atlas は外部依存ゼロの単一 HTML。
+      開いたら <code>1–0</code> で操作を選び、<code>← →</code> でステップを送る・戻す。右上のドロップダウンで 9 種のカラースキームを切替。</p>
+  </header>
+
+  <h2><span data-show="en">Examples</span><span data-show="ja">サンプル</span></h2>
+  <div class="grid">
+    <a class="card" data-href="rag-agent" href="./rag-agent.en.html">
+      <div class="ic">🤖</div>
+      <div class="nm" data-show="en">AI Agent — RAG pipeline</div>
+      <div class="nm" data-show="ja">AI Agent — RAG パイプライン</div>
+      <div class="ds" data-show="en">docs → index → retrieve → agent loop → memory → answer. A generic RAG/agent shape.</div>
+      <div class="ds" data-show="ja">docs → index → retrieve → agent loop → memory → answer。汎用の RAG/エージェント構成。</div>
+      <div class="meta">14 nodes · 6 flows</div>
+    </a>
+  </div>
+
+  <h2><span data-show="en">Real repositories</span><span data-show="ja">実リポジトリ</span></h2>
+  <div class="grid">
+    <a class="card" data-href="hermes-agent" href="./hermes-agent.en.html">
+      <div class="ic">🪽</div>
+      <div class="nm">Hermes Agent</div>
+      <div class="ds" data-show="en">NousResearch/hermes-agent traced from real code (file:line citations): CLI, gateways, agent loop, tools, MCP, cron, memory, skills.</div>
+      <div class="ds" data-show="ja">NousResearch/hermes-agent を実コードからトレース (file:line 根拠つき): CLI・ゲートウェイ・エージェントループ・ツール・MCP・cron・メモリ・スキル。</div>
+      <div class="meta">23 nodes · 19 flows</div>
+    </a>
+  </div>
+
+  <footer>
+    <span data-show="en">Source &amp; docs:</span><span data-show="ja">ソース・ドキュメント:</span>
+    <a href="https://github.com/fujiya228/workflow-atlas">github.com/fujiya228/workflow-atlas</a>
+    · <a href="https://github.com/fujiya228/workflow-atlas/blob/main/SPEC.md">SPEC.md</a>
+  </footer>
+</div>
+
+<script>
+  "use strict";
+  var root = document.documentElement;
+  function setLang(l){
+    root.setAttribute("data-lang", l);
+    root.setAttribute("lang", l);
+    // re-point each card to the language-specific build
+    document.querySelectorAll("a.card[data-href]").forEach(function(a){
+      a.setAttribute("href", "./" + a.getAttribute("data-href") + "." + l + ".html");
+    });
+    document.querySelectorAll(".langtog button").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-set") === l);
+    });
+    try { localStorage.setItem("atlas-lang", l); } catch(e){}
+  }
+  document.querySelectorAll(".langtog button").forEach(function(b){
+    b.addEventListener("click", function(){ setLang(b.getAttribute("data-set")); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem("atlas-lang"); } catch(e){}
+  setLang(saved || (navigator.language && navigator.language.indexOf("ja") === 0 ? "ja" : "en"));
+</script>
+</body>
+</html>

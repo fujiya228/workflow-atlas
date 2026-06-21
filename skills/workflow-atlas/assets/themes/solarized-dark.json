@@ -1,0 +1,11 @@
+{
+  "id": "solarized-dark",
+  "name": "Solarized Dark",
+  "mode": "dark",
+  "chrome": {
+    "bg": "#002b36", "surface": "#073642", "panel": "#073642",
+    "line": "#586e75", "grid": "#0a3a45", "text": "#eee8d5", "muted": "#839496",
+    "edge": "#586e75", "edge-active": "#268bd2", "edge-active-glow": "rgba(38,139,210,0.40)"
+  },
+  "lanes": ["#268bd2", "#859900", "#b58900", "#d33682", "#2aa198", "#dc322f", "#6c71c4"]
+}

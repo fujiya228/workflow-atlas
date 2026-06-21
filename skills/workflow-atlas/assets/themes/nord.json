@@ -1,0 +1,11 @@
+{
+  "id": "nord",
+  "name": "Nord",
+  "mode": "dark",
+  "chrome": {
+    "bg": "#2e3440", "surface": "#3b4252", "panel": "#2e3440",
+    "line": "#434c5e", "grid": "#3b4252", "text": "#eceff4", "muted": "#9aa3b5",
+    "edge": "#4c566a", "edge-active": "#88c0d0", "edge-active-glow": "rgba(136,192,208,0.40)"
+  },
+  "lanes": ["#81a1c1", "#a3be8c", "#ebcb8b", "#b48ead", "#88c0d0", "#bf616a", "#5e81ac"]
+}

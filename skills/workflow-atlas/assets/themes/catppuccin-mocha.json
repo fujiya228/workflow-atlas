@@ -1,0 +1,11 @@
+{
+  "id": "catppuccin-mocha",
+  "name": "Catppuccin Mocha",
+  "mode": "dark",
+  "chrome": {
+    "bg": "#1e1e2e", "surface": "#313244", "panel": "#181825",
+    "line": "#45475a", "grid": "#313244", "text": "#cdd6f4", "muted": "#a6adc8",
+    "edge": "#6c7086", "edge-active": "#89b4fa", "edge-active-glow": "rgba(137,180,250,0.40)"
+  },
+  "lanes": ["#89b4fa", "#a6e3a1", "#f9e2af", "#f5c2e7", "#89dceb", "#f38ba8", "#cba6f7"]
+}

@@ -1,0 +1,168 @@
+#!/usr/bin/env node
+"use strict";
+/*
+ * atlas — Workflow Atlas builder (SPEC §8). Node stdlib only, zero deps.
+ *
+ *   atlas build <data.json> [--theme <name>] [-o out.html] [--title <text>] [--validate-only]
+ *
+ * Substitutes the ATLAS:DATA and ATLAS:THEME regions of template.html, the
+ * <html data-theme="…"> attribute, and <title>, producing one self-contained file.
+ */
+const fs = require("fs");
+const path = require("path");
+
+const HERE = __dirname;
+const TEMPLATE = path.join(HERE, "..", "assets", "template.html");  // scripts/ -> ../assets/
+
+function die(msg, code = 1){ process.stderr.write("atlas: " + msg + "\n"); process.exit(code); }
+
+/* ---------- arg parsing ---------- */
+function parseArgs(argv){
+  const a = { _: [], theme: null, out: null, title: null, validateOnly: false };
+  for(let i = 0; i < argv.length; i++){
+    const t = argv[i];
+    if(t === "--theme") a.theme = argv[++i];
+    else if(t === "-o" || t === "--out") a.out = argv[++i];
+    else if(t === "--title") a.title = argv[++i];
+    else if(t === "--validate-only") a.validateOnly = true;
+    else if(t === "-h" || t === "--help"){ usage(); process.exit(0); }
+    else a._.push(t);
+  }
+  return a;
+}
+function usage(){
+  process.stdout.write(
+`atlas — Workflow Atlas builder
+
+Usage:
+  atlas build <data.json> [options]
+
+Options:
+  --theme <name>     preset theme id (default: okabe-ito-light)
+  -o, --out <file>   output path (default: <data basename>.html)
+  --title <text>     override meta.title used for <title>
+  --validate-only    validate data and exit (no output written)
+  -h, --help         this help
+
+Themes are read from the bundled template (${path.basename(TEMPLATE)}).
+`);
+}
+
+/* ---------- validation (SPEC §3.6) ---------- */
+function validate(d){
+  const e = [];
+  if(!d || typeof d !== "object") return ["data is not an object"];
+  if(!d.meta || !d.meta.title) e.push("meta.title is required");
+  if(!d.viewBox || !(d.viewBox.w > 0) || !(d.viewBox.h > 0)) e.push("viewBox.w and viewBox.h must be > 0");
+  // required arrays (missing/empty would crash the engine later)
+  if(!Array.isArray(d.nodes) || d.nodes.length === 0) e.push("nodes must be a non-empty array");
+  if(!Array.isArray(d.flows) || d.flows.length === 0) e.push("flows must be a non-empty array");
+  if(d.groups !== undefined && !Array.isArray(d.groups)) e.push("groups must be an array");
+  if(e.length && (!Array.isArray(d.nodes) || !Array.isArray(d.flows))) return e; // can't safely continue
+
+  const nodeIds = new Set();
+  (d.nodes || []).forEach((n, i) => {
+    if(!n.id){ e.push(`nodes[${i}].id is missing`); return; }
+    if(nodeIds.has(n.id)) e.push(`duplicate node.id "${n.id}"`);
+    nodeIds.add(n.id);
+  });
+  const groupIds = new Set((d.groups || []).map(g => g.id));
+  (d.nodes || []).forEach((n, i) => {
+    if(n.group && !groupIds.has(n.group)) e.push(`node "${n.id || i}" references unknown group "${n.group}"`);
+  });
+
+  const flowIds = new Set();
+  (d.flows || []).forEach((f, i) => {
+    const fid = f.id || `index ${i}`;
+    if(!f.id) e.push(`flows[${i}].id is missing`);
+    else { if(flowIds.has(f.id)) e.push(`duplicate flow.id "${f.id}"`); flowIds.add(f.id); }
+    if(!f.steps || !f.steps.length){ e.push(`flow "${fid}" has no steps`); return; }
+    f.steps.forEach((s, j) => {
+      if(!nodeIds.has(s.from)) e.push(`flow "${fid}" step ${j+1}: from "${s.from}" is not a node id`);
+      if(!nodeIds.has(s.to))   e.push(`flow "${fid}" step ${j+1}: to "${s.to}" is not a node id`);
+      if(!s.passes || !String(s.passes).trim()) e.push(`flow "${fid}" step ${j+1}: passes is empty`);
+    });
+  });
+  return e;
+}
+
+/* ---------- region substitution ---------- */
+function replaceRegion(html, marker, content){
+  // matches  /*MARKER*/ … /*/MARKER*/  (keeps the markers, swaps the inner content)
+  const m = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp("(/\\*" + m + "\\*/)[\\s\\S]*?(/\\*/" + m + "\\*/)");
+  if(!re.test(html)) die(`template is missing the ${marker} region`);
+  // function replacer: `content` is inserted literally ($ has no special meaning)
+  return html.replace(re, (match, p1, p2) => p1 + "\n" + content + "\n" + p2);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c])); }
+
+function rootTokens(theme){
+  const c = theme.chrome;
+  return ":root{\n" +
+    `    --bg:${c.bg}; --surface:${c.surface}; --bg-2:${c.panel}; --panel:${c.panel};\n` +
+    `    --line:${c.line}; --grid:${c.grid}; --text:${c.text}; --muted:${c.muted};\n` +
+    `    --edge:${c.edge}; --edge-active:${c["edge-active"]}; --edge-active-glow:${c["edge-active-glow"]};\n` +
+    "  }";
+}
+
+/* ---------- bundled theme table (read from template) ---------- */
+function loadThemes(template){
+  const m = template.match(/<script[^>]*id="atlas-themes"[^>]*>([\s\S]*?)<\/script>/);
+  if(!m) die("template is missing the #atlas-themes table");
+  try { return JSON.parse(m[1]); }
+  catch(err){ die("could not parse #atlas-themes JSON: " + err.message); }
+}
+
+/* ---------- build ---------- */
+function build(args){
+  const dataPath = args._[0];
+  if(!dataPath) die("build requires a <data.json> path (see --help)");
+  if(!fs.existsSync(dataPath)) die(`data file not found: ${dataPath}`);
+
+  let data;
+  try { data = JSON.parse(fs.readFileSync(dataPath, "utf8")); }
+  catch(err){ die(`invalid JSON in ${dataPath}: ${err.message}`); }
+
+  const errs = validate(data);
+  if(errs.length){
+    process.stderr.write("atlas: data validation failed:\n");
+    errs.forEach(x => process.stderr.write("  - " + x + "\n"));
+    process.exit(2);
+  }
+  if(args.validateOnly){ process.stdout.write(`atlas: ${dataPath} is valid (${data.nodes.length} nodes, ${data.flows.length} flows)\n`); return; }
+
+  const template = fs.readFileSync(TEMPLATE, "utf8");
+  const themes = loadThemes(template);
+  const themeId = args.theme || "okabe-ito-light";
+  const theme = themes[themeId];
+  if(!theme) die(`unknown theme "${themeId}". Available: ${Object.keys(themes).join(", ")}`);
+
+  const title = args.title || data.meta.title || "Workflow Atlas";
+
+  // Escape "<" as < so any "</script>", "<!--", "<script" inside data values cannot
+  // break out of the <script type="application/json"> block (XSS / blank-page). Valid JSON;
+  // JSON.parse restores "<" on load.
+  const dataJson = JSON.stringify(data, null, 2).replace(/</g, "\\u003c");
+
+  let html = template;
+  html = replaceRegion(html, "ATLAS:DATA", dataJson);
+  html = replaceRegion(html, "ATLAS:THEME", rootTokens(theme));
+  html = html.replace(/(<html[^>]*\bdata-theme=")[^"]*(")/, (m, p1, p2) => p1 + themeId + p2);
+  // function replacer avoids $-pattern interpretation in the title (e.g. "Cost $5", "A $& B")
+  html = html.replace(/<title>[\s\S]*?<\/title>/, () => `<title>${escapeHtml(title)}</title>`);
+
+  const out = args.out || path.join(path.dirname(dataPath), path.basename(dataPath).replace(/\.json$/i, "") + ".html");
+  fs.writeFileSync(out, html);
+  process.stdout.write(`atlas: wrote ${out}  (theme: ${themeId}, ${data.nodes.length} nodes, ${data.flows.length} flows)\n`);
+}
+
+/* ---------- main ---------- */
+function main(){
+  const argv = process.argv.slice(2);
+  const cmd = argv[0];
+  if(!cmd || cmd === "-h" || cmd === "--help"){ usage(); process.exit(cmd ? 0 : 1); }
+  if(cmd === "build"){ build(parseArgs(argv.slice(1))); return; }
+  die(`unknown command "${cmd}" (expected: build)`);
+}
+main();

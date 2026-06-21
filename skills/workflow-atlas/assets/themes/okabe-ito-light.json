@@ -1,0 +1,11 @@
+{
+  "id": "okabe-ito-light",
+  "name": "Okabe-Ito (Light)",
+  "mode": "light",
+  "chrome": {
+    "bg": "#F8FAFC", "surface": "#FFFFFF", "panel": "#F1F5F9",
+    "line": "#CBD5E1", "grid": "#E2E8F0", "text": "#111827", "muted": "#64748B",
+    "edge": "#94A3B8", "edge-active": "#0072B2", "edge-active-glow": "rgba(0,114,178,0.35)"
+  },
+  "lanes": ["#0072B2", "#009E73", "#E69F00", "#CC79A7", "#56B4E9", "#D55E00", "#000000"]
+}

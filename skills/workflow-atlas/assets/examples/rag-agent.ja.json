@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "title": "AI Agent — RAG パイプライン (状態 × 操作)",
+    "note": "汎用サンプル。node = 状態 (store/buffer/actor)、flow = 操作 (index/retrieve/generate/tool/memory)。特定リポジトリ非依存。"
+  },
+  "viewBox": { "w": 1600, "h": 900 },
+  "columns": [
+    { "id": "input",    "label": "INPUT",    "x": 140,  "divider": 270 },
+    { "id": "index",    "label": "INDEX",    "x": 400,  "divider": 530 },
+    { "id": "retrieve", "label": "RETRIEVE", "x": 660,  "divider": 790 },
+    { "id": "agent",    "label": "AGENT",    "x": 920,  "divider": 1050 },
+    { "id": "tools",    "label": "TOOLS",    "x": 1180, "divider": 1310 },
+    { "id": "output",   "label": "OUTPUT",   "x": 1440, "divider": null }
+  ],
+  "groups": [
+    { "id": "input",    "label": "Input" },
+    { "id": "index",    "label": "Index" },
+    { "id": "retrieve", "label": "Retrieve" },
+    { "id": "agent",    "label": "Agent" },
+    { "id": "tools",    "label": "Tools" },
+    { "id": "output",   "label": "Output" }
+  ],
+  "nodes": [
+    { "id": "user",       "title": "User",          "subtitle": "質問 / 目的",          "group": "input",    "x": 40,   "y": 300, "w": 200, "h": 56 },
+    { "id": "raw-docs",   "title": "Raw docs",      "subtitle": "PDF / web / markdown", "group": "input",    "x": 40,   "y": 560, "w": 200, "h": 56 },
+    { "id": "chunks",     "title": "Chunks",        "subtitle": "split + overlap",      "group": "index",    "x": 300,  "y": 120, "w": 200, "h": 56 },
+    { "id": "embeddings", "title": "Embeddings",    "subtitle": "dense vector",         "group": "index",    "x": 300,  "y": 320, "w": 200, "h": 56 },
+    { "id": "vstore",     "title": "Vector store",  "subtitle": "ANN 索引 (HNSW/IVF)",  "group": "index",    "x": 300,  "y": 520, "w": 200, "h": 56 },
+    { "id": "retriever",  "title": "Retriever",     "subtitle": "top-k / rerank",       "group": "retrieve", "x": 560,  "y": 320, "w": 200, "h": 56 },
+    { "id": "context",    "title": "Context",       "subtitle": "組み立て + 出典",       "group": "retrieve", "x": 560,  "y": 520, "w": 200, "h": 56 },
+    { "id": "llm",        "title": "LLM",           "subtitle": "Claude / GPT",         "group": "agent",    "x": 820,  "y": 200, "w": 200, "h": 56 },
+    { "id": "scratchpad", "title": "Scratchpad",    "subtitle": "中間推論 (ReAct)",      "group": "agent",    "x": 820,  "y": 400, "w": 200, "h": 56 },
+    { "id": "memory",     "title": "Memory",        "subtitle": "会話履歴",             "group": "agent",    "x": 820,  "y": 600, "w": 200, "h": 56 },
+    { "id": "tool-reg",   "title": "Tool registry", "subtitle": "関数スキーマ",          "group": "tools",    "x": 1080, "y": 300, "w": 200, "h": 56 },
+    { "id": "tool-exec",  "title": "Tool exec",     "subtitle": "副作用 / 外部 API",     "group": "tools",    "x": 1080, "y": 520, "w": 200, "h": 56 },
+    { "id": "answer",     "title": "Answer",        "subtitle": "最終回答",             "group": "output",   "x": 1340, "y": 300, "w": 200, "h": 56 },
+    { "id": "citations",  "title": "Citations",     "subtitle": "出典 snapshot",         "group": "output",   "x": 1340, "y": 520, "w": 200, "h": 56 }
+  ],
+  "flows": [
+    {
+      "id": "index", "icon": "📥", "name": "1. インデックス構築", "sub": "docs → chunk → embed → store",
+      "description": "知識源を検索可能な状態にする無人前処理。ローダ → スプリッタ → 埋め込み → ベクタストアへ upsert。回答時は読まず、ここでは溜めるだけ。",
+      "steps": [
+        { "from": "raw-docs",   "to": "chunks",     "passes": "split (overlap)",  "note": "loader + splitter" },
+        { "from": "chunks",     "to": "embeddings", "passes": "embed",            "note": "embedding model" },
+        { "from": "embeddings", "to": "vstore",     "passes": "upsert",           "note": "ANN (HNSW / IVF)" }
+      ]
+    },
+    {
+      "id": "retrieve", "icon": "🔎", "name": "2. 検索 (retrieve)", "sub": "question → top-k context",
+      "description": "質問を埋め込み、ベクタストアの近傍を引いて rerank し、出典つきの文脈に組み立てる。状態は変えない読み取り。",
+      "steps": [
+        { "from": "user",      "to": "retriever", "passes": "質問を embed",     "note": "query encoder" },
+        { "from": "vstore",    "to": "retriever", "passes": "ANN 近傍 (top-k)", "note": "" },
+        { "from": "retriever", "to": "context",   "passes": "rerank + 組み立て", "note": "出典メタつき" }
+      ]
+    },
+    {
+      "id": "generate", "icon": "💬", "name": "3. 回答生成 (RAG)", "sub": "context-grounded answer",
+      "description": "検索文脈を注入して回答を生成し、出典 snapshot を紐付ける。grounding により hallucination を抑える。",
+      "steps": [
+        { "from": "user",    "to": "llm",       "passes": "質問",             "note": "" },
+        { "from": "context", "to": "llm",       "passes": "検索文脈を注入",    "note": "grounding" },
+        { "from": "llm",     "to": "answer",    "passes": "回答生成",          "note": "" },
+        { "from": "context", "to": "citations", "passes": "出典 snapshot",     "note": "{source, score}" }
+      ]
+    },
+    {
+      "id": "tool-loop", "icon": "🛠️", "name": "4. ツール呼び出し (agent loop)", "sub": "ReAct: think → call → observe",
+      "description": "回答に外部行動が要るとき、LLM が思考(scratchpad)→ツール選択 → 実行 → observation を読む、を収束まで反復。",
+      "steps": [
+        { "from": "llm",      "to": "scratchpad", "passes": "思考 (ReAct)",     "note": "中間ステップ" },
+        { "from": "llm",      "to": "tool-reg",   "passes": "tool 選択",        "note": "function calling" },
+        { "from": "tool-reg", "to": "tool-exec",  "passes": "引数 (JSON)",      "note": "" },
+        { "from": "tool-exec","to": "llm",        "passes": "結果 (observation)","note": "収束までループ" }
+      ]
+    },
+    {
+      "id": "memory", "icon": "🧠", "name": "5. 記憶 (memory)", "sub": "turn 保存 → 次ターン注入",
+      "description": "確定回答を会話履歴に保存し、次ターンで LLM に注入する。短期記憶のサイクル。",
+      "steps": [
+        { "from": "answer", "to": "memory", "passes": "ターン保存",   "note": "" },
+        { "from": "memory", "to": "llm",    "passes": "履歴を注入",   "note": "次ターン" }
+      ]
+    },
+    {
+      "id": "deliver", "icon": "📤", "name": "6. 応答 (deliver)", "sub": "answer + citations → user",
+      "description": "最終回答と出典をユーザへ返す。書き戻しのない出力。",
+      "steps": [
+        { "from": "answer",    "to": "user", "passes": "最終回答",   "note": "" },
+        { "from": "citations", "to": "user", "passes": "出典リンク", "note": "no writeback" }
+      ]
+    }
+  ]
+}

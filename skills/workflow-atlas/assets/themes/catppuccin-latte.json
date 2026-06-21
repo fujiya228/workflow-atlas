@@ -1,0 +1,11 @@
+{
+  "id": "catppuccin-latte",
+  "name": "Catppuccin Latte",
+  "mode": "light",
+  "chrome": {
+    "bg": "#eff1f5", "surface": "#ffffff", "panel": "#e6e9ef",
+    "line": "#ccd0da", "grid": "#dce0e8", "text": "#4c4f69", "muted": "#6c6f85",
+    "edge": "#9ca0b0", "edge-active": "#1e66f5", "edge-active-glow": "rgba(30,102,245,0.30)"
+  },
+  "lanes": ["#1e66f5", "#40a02b", "#df8e1d", "#ea76cb", "#04a5e5", "#d20f39", "#8839ef"]
+}

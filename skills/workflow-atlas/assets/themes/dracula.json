@@ -1,0 +1,11 @@
+{
+  "id": "dracula",
+  "name": "Dracula",
+  "mode": "dark",
+  "chrome": {
+    "bg": "#282a36", "surface": "#343746", "panel": "#21222c",
+    "line": "#44475a", "grid": "#343746", "text": "#f8f8f2", "muted": "#6272a4",
+    "edge": "#44475a", "edge-active": "#ff79c6", "edge-active-glow": "rgba(255,121,198,0.45)"
+  },
+  "lanes": ["#bd93f9", "#50fa7b", "#f1fa8c", "#ff79c6", "#8be9fd", "#ff5555", "#ffb86c"]
+}

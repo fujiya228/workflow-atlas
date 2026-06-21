@@ -1,0 +1,1112 @@
+{
+  "meta": {
+    "title": "Hermes Agent — package/component workflows",
+    "repo": "github.com/nousresearch/hermes-agent",
+    "note": "Based on tracing the actual code. Each step's note ends with the file:line evidence."
+  },
+  "viewBox": {
+    "w": 1500,
+    "h": 900
+  },
+  "columns": [
+    {
+      "id": "external",
+      "label": "EXTERNAL",
+      "x": 150,
+      "divider": 300
+    },
+    {
+      "id": "entry",
+      "label": "ENTRY",
+      "x": 450,
+      "divider": 600
+    },
+    {
+      "id": "core",
+      "label": "CORE",
+      "x": 750,
+      "divider": 900
+    },
+    {
+      "id": "tools",
+      "label": "TOOLS",
+      "x": 1050,
+      "divider": 1200
+    },
+    {
+      "id": "state",
+      "label": "STATE",
+      "x": 1350,
+      "divider": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "external",
+      "label": "External"
+    },
+    {
+      "id": "entry",
+      "label": "Entry"
+    },
+    {
+      "id": "core",
+      "label": "Core"
+    },
+    {
+      "id": "tools",
+      "label": "Tools"
+    },
+    {
+      "id": "state",
+      "label": "State"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "title": "User",
+      "subtitle": "CLI / message / editor",
+      "group": "external",
+      "x": 40,
+      "y": 100,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "msg-platform",
+      "title": "Messaging platforms",
+      "subtitle": "Telegram / Slack / Discord / Email",
+      "group": "external",
+      "x": 40,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "llm-provider",
+      "title": "LLM provider",
+      "subtitle": "OpenAI-compatible / Anthropic / Bedrock / Codex",
+      "group": "external",
+      "x": 40,
+      "y": 388,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "mcp-server",
+      "title": "External MCP server",
+      "subtitle": "stdio / HTTP / SSE",
+      "group": "external",
+      "x": 40,
+      "y": 532,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "exec-backend",
+      "title": "Execution backend",
+      "subtitle": "local / Docker / SSH / Modal / Daytona",
+      "group": "external",
+      "x": 40,
+      "y": 676,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "honcho-service",
+      "title": "Honcho service",
+      "subtitle": "Dialectic user modeling (optional)",
+      "group": "external",
+      "x": 40,
+      "y": 820,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "cli",
+      "title": "CLI / REPL",
+      "subtitle": "hermes_cli.main → cli.py",
+      "group": "entry",
+      "x": 340,
+      "y": 100,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "gateway",
+      "title": "Messaging Gateway",
+      "subtitle": "GatewayRunner + HTTP API",
+      "group": "entry",
+      "x": 340,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "tui-gateway",
+      "title": "TUI Gateway",
+      "subtitle": "tui_gateway (Node bridge)",
+      "group": "entry",
+      "x": 340,
+      "y": 388,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "acp-adapter",
+      "title": "ACP adapter",
+      "subtitle": "acp_adapter (editor integration)",
+      "group": "entry",
+      "x": 340,
+      "y": 532,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "cron-scheduler",
+      "title": "Cron scheduler",
+      "subtitle": "cron/scheduler.py",
+      "group": "entry",
+      "x": 340,
+      "y": 676,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "batch-runner",
+      "title": "Batch runner",
+      "subtitle": "batch_runner.py (trajectory generation)",
+      "group": "entry",
+      "x": 340,
+      "y": 820,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "system-prompt",
+      "title": "System prompt assembly",
+      "subtitle": "identity + memory + skills",
+      "group": "core",
+      "x": 640,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "agent-loop",
+      "title": "Agent loop",
+      "subtitle": "run_conversation (conversation_loop)",
+      "group": "core",
+      "x": 640,
+      "y": 432,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "model-client",
+      "title": "Model client",
+      "subtitle": "provider selection + LLM call",
+      "group": "core",
+      "x": 640,
+      "y": 620,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "code-exec",
+      "title": "execute_code RPC",
+      "subtitle": "zero-context pipeline",
+      "group": "tools",
+      "x": 940,
+      "y": 120,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "mcp-client",
+      "title": "MCP client",
+      "subtitle": "tools/mcp_tool.py",
+      "group": "tools",
+      "x": 940,
+      "y": 270,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "tool-exec",
+      "title": "Tool execution dispatch",
+      "subtitle": "registry.dispatch",
+      "group": "tools",
+      "x": 940,
+      "y": 420,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "terminal-tool",
+      "title": "Terminal tool",
+      "subtitle": "tools/terminal_tool.py",
+      "group": "tools",
+      "x": 940,
+      "y": 570,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "delegate",
+      "title": "Sub-agent delegation",
+      "subtitle": "delegate_task → child AIAgent",
+      "group": "tools",
+      "x": 940,
+      "y": 720,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "session-db",
+      "title": "Session DB",
+      "subtitle": "SQLite + FTS5 (hermes_state)",
+      "group": "state",
+      "x": 1240,
+      "y": 244,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "memory-store",
+      "title": "Memory",
+      "subtitle": "MEMORY.md / USER.md",
+      "group": "state",
+      "x": 1240,
+      "y": 432,
+      "w": 220,
+      "h": 56
+    },
+    {
+      "id": "skills-store",
+      "title": "Skill store",
+      "subtitle": "skills + curator / background review",
+      "group": "state",
+      "x": 1240,
+      "y": 620,
+      "w": 220,
+      "h": 56
+    }
+  ],
+  "flows": [
+    {
+      "id": "cli-start",
+      "icon": "🚀",
+      "name": "1. CLI launch → interactive agent",
+      "sub": "From hermes command to AIAgent construction",
+      "description": "`hermes` (no subcommand) goes through hermes_cli.main → cmd_chat to launch the cli.py REPL, constructs an AIAgent, and drives turns.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "cli",
+          "passes": "hermes launch (argv: model/provider/toolsets/resume)",
+          "note": "hermes_cli.main:main() parses; no subcommand defaults to chat (main.py:12625)"
+        },
+        {
+          "from": "cli",
+          "to": "agent-loop",
+          "passes": "AIAgent(model, provider, toolsets, session_id) + chat(query)",
+          "note": "cmd_chat→cli.main(**kwargs)→constructs AIAgent and drives REPL (main.py:2311, cli.py:821)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "session_id, source",
+          "note": "Create/restore session on launch (SessionDB.create_session, hermes_state.py:1369)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "user",
+          "passes": "response text",
+          "note": "REPL cycles turns and renders (cli.chat, cli.py:14861)"
+        }
+      ]
+    },
+    {
+      "id": "agent-turn",
+      "icon": "🔄",
+      "name": "2. Agent turn (LLM call)",
+      "sub": "Prompt assembly → inference → persistence",
+      "description": "A user message enters run_conversation, the 3-layer system prompt (memory/skill injection) is assembled, an inference request is sent to the provider, and the final response is finalized and persisted to the SessionDB. This is the core turn.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "agent-loop",
+          "passes": "user message",
+          "note": "run_conversation(user_message) (run_agent.py:5272 → conversation_loop.py:469)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "system-prompt",
+          "passes": "valid_tool_names, system_message",
+          "note": "build_turn_context→build_system_prompt_parts; 3 layers: stable/context/volatile (turn_context.py:64, system_prompt.py:113)"
+        },
+        {
+          "from": "memory-store",
+          "to": "system-prompt",
+          "passes": "MEMORY.md + USER.md snapshot",
+          "note": "Injected into the volatile layer (format_for_system_prompt, system_prompt.py:425)"
+        },
+        {
+          "from": "skills-store",
+          "to": "system-prompt",
+          "passes": "skill index (name+description)",
+          "note": "build_skills_system_prompt (prompt_builder.py:1244)"
+        },
+        {
+          "from": "system-prompt",
+          "to": "agent-loop",
+          "passes": "active_system_prompt",
+          "note": "Cached in _cached_system_prompt (turn_context.py:253)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages (system+history) + tool schemas + max_tokens",
+          "note": "build_api_kwargs→interruptible_streaming_api_call (chat_completion_helpers.py:555,1567)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "chat.completions.create(stream=True)",
+          "note": "api_mode branches across OpenAI-compatible/Anthropic/Bedrock/Codex (chat_completion_helpers.py:1831)"
+        },
+        {
+          "from": "llm-provider",
+          "to": "model-client",
+          "passes": "SSE deltas (text/reasoning/tool)",
+          "note": "validate→normalize_response unifies into assistant_message"
+        },
+        {
+          "from": "model-client",
+          "to": "agent-loop",
+          "passes": "assistant_message (.content/.tool_calls/.finish_reason)",
+          "note": "No tool_calls→finalize response (conversation_loop.py:3529,4381)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "messages[] (role/content/tool_calls)",
+          "note": "_persist_session→append_message (run_agent.py:1512,1581)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "user",
+          "passes": "final text (deltas streamed incrementally)",
+          "note": "stream_delta_callback (run_agent.py:4213)"
+        }
+      ]
+    },
+    {
+      "id": "tool-roundtrip",
+      "icon": "🛠️",
+      "name": "3. Tool call round-trip",
+      "sub": "tool_calls → execute → re-inject loop",
+      "description": "When the model returns tool_calls, the tool_executor runs them via registry.dispatch, appends tool result messages to messages, and loops again.",
+      "steps": [
+        {
+          "from": "llm-provider",
+          "to": "agent-loop",
+          "passes": "assistant_message.tool_calls [{id, name, arguments(json)}]",
+          "note": "Detect tool_calls→branch to tools (conversation_loop.py:3718)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "assistant_message, messages, task_id",
+          "note": "_execute_tool_calls→execute_tool_calls_concurrent/sequential (run_agent.py:5170)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "tool result {role:tool, name, content, tool_call_id}",
+          "note": "registry.dispatch→make_tool_result_message; appended to messages (model_tools.py:1115, tool_dispatch_helpers.py:320)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages including tool results",
+          "note": "Continue loop, next LLM call (conversation_loop.py:4069)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "updated messages + tools",
+          "note": "Next iteration inference"
+        }
+      ]
+    },
+    {
+      "id": "terminal-backend",
+      "icon": "💻",
+      "name": "4. Terminal execution backend",
+      "sub": "terminal tool → 6 backend branches",
+      "description": "The terminal tool selects the execution environment from TERMINAL_ENV and runs the command on one of local/Docker/SSH/Modal/Daytona/Singularity, then collects the result.",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(terminal, {command, cwd})",
+          "note": "registry.dispatch('terminal') (model_tools.py:876)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "terminal-tool",
+          "passes": "command, env_type=TERMINAL_ENV",
+          "note": "terminal_tool→_create_environment factory (terminal_tool.py:1843,1225)"
+        },
+        {
+          "from": "terminal-tool",
+          "to": "exec-backend",
+          "passes": "bash -c '<snapshot>; <cmd>'",
+          "note": "local=Popen / docker=docker exec / ssh, modal, daytona are remote (base.py:327)"
+        },
+        {
+          "from": "exec-backend",
+          "to": "terminal-tool",
+          "passes": "{output, returncode}",
+          "note": "Collect execution result (base.py:872)"
+        },
+        {
+          "from": "terminal-tool",
+          "to": "tool-exec",
+          "passes": "{output, exit_code, status} JSON",
+          "note": "Format result (terminal_tool.py:1890)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "tool result message",
+          "note": "Append to messages and continue loop"
+        }
+      ]
+    },
+    {
+      "id": "execute-code-rpc",
+      "icon": "⚡",
+      "name": "5. execute_code RPC",
+      "sub": "Generated script calls tools via RPC",
+      "description": "execute_code generates a hermes_tools stub in a child process and chains multiple tools within a single turn via socket-based RPC (zero context cost).",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(execute_code, {code})",
+          "note": "sandbox_enabled = enabled_tools (model_tools.py:1110)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "code-exec",
+          "passes": "Generated hermes_tools.py (_call stub) + child process launch",
+          "note": "generate_hermes_tools_module; HERMES_RPC_SOCKET (UDS/loopback) (code_execution_tool.py:259,1198)"
+        },
+        {
+          "from": "code-exec",
+          "to": "tool-exec",
+          "passes": "{'tool':name,'args':{...}} (RPC over socket)",
+          "note": "child _call()→_rpc_server_loop validates allowlist→handle_function_call (code_execution_tool.py:525)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "code-exec",
+          "passes": "tool result JSON",
+          "note": "Returned to child over socket. Entire pipeline completes in 1 turn (code_execution_tool.py:582)"
+        },
+        {
+          "from": "code-exec",
+          "to": "agent-loop",
+          "passes": "script stdout / final result",
+          "note": "Returns execute_code output as the tool result"
+        }
+      ]
+    },
+    {
+      "id": "mcp-integration",
+      "icon": "🔌",
+      "name": "6. External MCP integration",
+      "sub": "connect → discover tools → register → call",
+      "description": "Connects to an external MCP server, discovers tools via list_tools, registers them in the registry as mcp_<srv>_<tool>, and executes them via call_tool during model calls.",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "mcp-client",
+          "passes": "mcp_servers config (command/url, transport, tools)",
+          "note": "register_mcp_servers at session start (mcp_tool.py:4019)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "mcp-server",
+          "passes": "stdio/HTTP/SSE connection + initialize()",
+          "note": "Dedicated mcp-event-loop thread (mcp_tool.py:191)"
+        },
+        {
+          "from": "mcp-server",
+          "to": "mcp-client",
+          "passes": "list_tools() → [Tool(name, inputSchema)]",
+          "note": "Tool discovery (mcp_tool.py:2137)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "tool-exec",
+          "passes": "registry.register('mcp_<srv>_<tool>', schema, handler)",
+          "note": "Registered in the registry with a prefix (mcp_tool.py:3933)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(mcp_<srv>_<tool>, args)",
+          "note": "Model calls the MCP tool (registry.dispatch)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "mcp-client",
+          "passes": "call_tool(name, arguments)",
+          "note": "_make_tool_handler; circuit breaker (mcp_tool.py:3110)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "mcp-server",
+          "passes": "session.call_tool(...)",
+          "note": "Executed on the MCP loop (mcp_tool.py:3152)"
+        },
+        {
+          "from": "mcp-server",
+          "to": "mcp-client",
+          "passes": "result content (text/image)",
+          "note": "Collect result (mcp_tool.py:3160)"
+        },
+        {
+          "from": "mcp-client",
+          "to": "agent-loop",
+          "passes": "result message",
+          "note": "Wrapped in <untrusted_tool_result>→messages"
+        }
+      ]
+    },
+    {
+      "id": "delegate",
+      "icon": "👥",
+      "name": "7. Sub-agent delegation",
+      "sub": "delegate_task → child AIAgent → collect summary",
+      "description": "delegate_task constructs a child AIAgent with a restricted toolset, runs run_conversation on a separate thread, and the parent receives only the summary.",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(delegate_task, {goal, context, toolsets, role})",
+          "note": "registry.dispatch('delegate_task') (delegate_tool.py:2065)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "delegate",
+          "passes": "goal, toolsets, parent_agent",
+          "note": "Check depth/concurrency→_build_child_agent (delegate_tool.py:972)"
+        },
+        {
+          "from": "delegate",
+          "to": "agent-loop",
+          "passes": "child = AIAgent(restricted toolset, depth+1); run_conversation(goal)",
+          "note": "Run the child on a separate thread (delegate_tool.py:1651)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "delegate",
+          "passes": "child result {status, summary=final_response}",
+          "note": "Parent references only the summary (delegate_tool.py:2341)"
+        },
+        {
+          "from": "delegate",
+          "to": "tool-exec",
+          "passes": "JSON {results:[...]}",
+          "note": "delegate_task result"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "result message",
+          "note": "Appended to parent messages"
+        }
+      ]
+    },
+    {
+      "id": "compression",
+      "icon": "🗜️",
+      "name": "8. Context compression",
+      "sub": "summarize with auxiliary model → session rotation",
+      "description": "When should_compress fires, the ContextCompressor summarizes the history with an auxiliary summarizer model and rotates to a new child session.",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "messages to summarize, current_tokens",
+          "note": "should_compress→compress_context→ContextCompressor.compress (conversation_loop.py:4053)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "summarization prompt",
+          "note": "To the auxiliary summarizer (cheap) model (auxiliary_client.call_llm)"
+        },
+        {
+          "from": "llm-provider",
+          "to": "model-client",
+          "passes": "summary text",
+          "note": "Falls back to the main model on failure"
+        },
+        {
+          "from": "model-client",
+          "to": "agent-loop",
+          "passes": "(compressed_messages, new_system_prompt)",
+          "note": "Compression result (context_compressor.py:2151)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "compressed messages, new child session_id",
+          "note": "Session rotation + compression lock (conversation_compression.py:361,460)"
+        }
+      ]
+    },
+    {
+      "id": "gateway-msg",
+      "icon": "💬",
+      "name": "9. Messaging Gateway receive→reply",
+      "sub": "Round-trip for Telegram/Slack etc.",
+      "description": "The adapter normalizes a platform message into a MessageEvent, routes to an AIAgent by session_key, and returns the response via streamed edits.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "msg-platform",
+          "passes": "send message",
+          "note": "Posted to Telegram/Slack etc."
+        },
+        {
+          "from": "msg-platform",
+          "to": "gateway",
+          "passes": "Update/Event {chat_id, text, user_id, thread}",
+          "note": "adapter normalizes into MessageEvent (telegram.py:6649)"
+        },
+        {
+          "from": "gateway",
+          "to": "session-db",
+          "passes": "build_session_key 'agent:main:telegram:dm:{chat_id}'",
+          "note": "Route history by session key (session.py:646)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "user_message, conversation_history, task_id=session_id",
+          "note": "_run_agent_inner→run_conversation; AIAgent is cached (run.py:15848)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "Inference turn (shared with Flow 2)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "text deltas",
+          "note": "stream_delta_callback→GatewayStreamConsumer.on_delta (run.py:15374)"
+        },
+        {
+          "from": "gateway",
+          "to": "msg-platform",
+          "passes": "response text (incremental edits)",
+          "note": "adapter.send→edit_message (editMessageText) (stream_consumer.py:795)"
+        },
+        {
+          "from": "msg-platform",
+          "to": "user",
+          "passes": "render reply",
+          "note": "Delivered to the platform"
+        }
+      ]
+    },
+    {
+      "id": "voice",
+      "icon": "🎙️",
+      "name": "10. Voice memo → transcription",
+      "sub": "voice DL → transcribe → agent",
+      "description": "Downloads and caches the voice memo, transcribes it with transcribe_audio (faster-whisper/cloud Whisper), then injects it as a user message.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "msg-platform",
+          "passes": "send voice memo",
+          "note": "Audio attachment"
+        },
+        {
+          "from": "msg-platform",
+          "to": "gateway",
+          "passes": "audio file (audio/ogg)",
+          "note": "DL→cache, _enrich_message_with_transcription (run.py:12702)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "'[Voice message: \"{transcript}\"]' + history",
+          "note": "transcribe_audio (faster-whisper/cloud Whisper)→run_conversation (run.py:12745,15848)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "response deltas",
+          "note": "Normal response (shared with Flow 9)"
+        },
+        {
+          "from": "gateway",
+          "to": "msg-platform",
+          "passes": "reply text",
+          "note": "Delivery (edit_message)"
+        }
+      ]
+    },
+    {
+      "id": "http-api",
+      "icon": "🌐",
+      "name": "11. HTTP API (OpenAI-compatible)",
+      "sub": "/v1/chat/completions → SSE",
+      "description": "The APIServerAdapter receives an OpenAI-compatible HTTP request, continues history by session_id, runs an agent per request, and returns via SSE.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "gateway",
+          "passes": "POST /v1/chat/completions {messages, model, stream}",
+          "note": "APIServerAdapter._handle_chat_completions (api_server.py:1745)"
+        },
+        {
+          "from": "gateway",
+          "to": "session-db",
+          "passes": "session_id (header or fingerprint)",
+          "note": "Continues via get_messages_as_conversation (api_server.py:1817)"
+        },
+        {
+          "from": "gateway",
+          "to": "agent-loop",
+          "passes": "user_message, conversation_history, task_id",
+          "note": "_run_agent→run_conversation; new agent per request (api_server.py:3619)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "gateway",
+          "passes": "text deltas → queue.Queue",
+          "note": "_on_delta pushes to the SSE queue (api_server.py:1867)"
+        },
+        {
+          "from": "gateway",
+          "to": "user",
+          "passes": "SSE chunks {choices:[{delta:{content}}]} + [DONE]",
+          "note": "text/event-stream (api_server.py:2126)"
+        }
+      ]
+    },
+    {
+      "id": "tui",
+      "icon": "🖥️",
+      "name": "12. TUI bridge",
+      "sub": "Node TUI ↔ tui_gateway (JSON-RPC)",
+      "description": "A Node/TS TUI spawns python -m tui_gateway.entry, sends prompt.submit over JSON-RPC, and receives events such as message.delta.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "tui-gateway",
+          "passes": "JSON-RPC {method:'prompt.submit', params:{session_id, text}}",
+          "note": "Node TUI→python -m tui_gateway.entry (stdio/WS) (server.py:6097)"
+        },
+        {
+          "from": "tui-gateway",
+          "to": "agent-loop",
+          "passes": "run_message, conversation_history, stream_callback, task_id=session_key",
+          "note": "_run_prompt_submit→run_conversation; agent cached per session (server.py:6508)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tui-gateway",
+          "passes": "token deltas + tool/reasoning events",
+          "note": "_stream→_emit('message.delta') (server.py:6491)"
+        },
+        {
+          "from": "tui-gateway",
+          "to": "user",
+          "passes": "JSON-RPC event frames {type, payload}",
+          "note": "Newline-delimited to the Node side (server.py:750)"
+        }
+      ]
+    },
+    {
+      "id": "acp",
+      "icon": "✏️",
+      "name": "13. ACP editor integration",
+      "sub": "session/prompt → session/update",
+      "description": "An editor (Zed etc.) sends an ACP session/prompt, the acp_adapter runs the AIAgent and streams back via session/update notifications.",
+      "steps": [
+        {
+          "from": "user",
+          "to": "acp-adapter",
+          "passes": "JSON-RPC {method:'session/prompt', params:{prompt:[blocks]}}",
+          "note": "From an editor (Zed etc.) over stdio (server.py:1292)"
+        },
+        {
+          "from": "acp-adapter",
+          "to": "agent-loop",
+          "passes": "user_content (multimodal), conversation_history, task_id=session_id",
+          "note": "_run_agent→run_conversation; SessionManager holds the AIAgent (server.py:1505)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "acp-adapter",
+          "passes": "text/thought deltas, tool events",
+          "note": "events callbacks→session_update (events.py:87)"
+        },
+        {
+          "from": "acp-adapter",
+          "to": "user",
+          "passes": "session/update notifications (agent_message_chunk, tool_call)",
+          "note": "JSON-RPC notifications (events.py:266)"
+        }
+      ]
+    },
+    {
+      "id": "persist-search",
+      "icon": "💾",
+      "name": "14. Session persistence & cross-session search (FTS5)",
+      "sub": "append → index → session_search",
+      "description": "When messages are appended to the SessionDB, an AFTER INSERT trigger updates the FTS5 index, and the session_search tool searches across past sessions.",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "session-db",
+          "passes": "messages[] append (role/content/tool_calls)",
+          "note": "Persist; AFTER INSERT trigger updates messages_fts/trigram index (run_agent.py:1581, hermes_state.py:606)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(session_search, {query, limit})",
+          "note": "Past-session search tool (session_search_tool.py:629)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "session-db",
+          "passes": "FTS5 query (messages_fts MATCH)",
+          "note": "BM25 rank + snippet; CJK uses trigram (hermes_state.py:3388,3476)"
+        },
+        {
+          "from": "session-db",
+          "to": "tool-exec",
+          "passes": "matching rows + surrounding context (anchored view ±5)",
+          "note": "get_anchored_view (session_search_tool.py:454)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "agent-loop",
+          "passes": "JSON {results:[{session_id, when, snippet, messages}]}",
+          "note": "Returns raw DB rows (no LLM summary); the calling model integrates them (session_search_tool.py:485)"
+        }
+      ]
+    },
+    {
+      "id": "memory",
+      "icon": "🧠",
+      "name": "15. Memory read/write",
+      "sub": "prompt injection + prefetch + memory tool",
+      "description": "MEMORY.md/USER.md are frozen-injected into the prompt, external memory is prefetched each turn, and the memory tool writes back to disk.",
+      "steps": [
+        {
+          "from": "memory-store",
+          "to": "system-prompt",
+          "passes": "MEMORY.md + USER.md (§-delimited, sanitized)",
+          "note": "On launch/after compression load_from_disk→frozen snapshot (memory_tool.py:132)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "memory-store",
+          "passes": "query → prefetch",
+          "note": "memory_manager.on_turn_start/prefetch_all (turn_context.py:379)"
+        },
+        {
+          "from": "memory-store",
+          "to": "agent-loop",
+          "passes": "<memory-context> block",
+          "note": "Attached to the current turn's user msg (non-persistent) (conversation_loop.py:721)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(memory, {action:add/replace/remove, target})",
+          "note": "Model updates memory (memory_tool.py:838)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "memory-store",
+          "passes": "add/replace/remove entry",
+          "note": "Atomic write + drift detection to MEMORY.md/USER.md (memory_tool.py:269)"
+        }
+      ]
+    },
+    {
+      "id": "skill-loop",
+      "icon": "📈",
+      "name": "16. Skill self-improvement loop",
+      "sub": "discover → use → background review → curator",
+      "description": "The skill index is surfaced in the prompt, skill_view loads the body. After a turn, a background review (forked AIAgent) creates/patches via skill_manage, and the curator periodically consolidates — a closed learning loop.",
+      "steps": [
+        {
+          "from": "skills-store",
+          "to": "system-prompt",
+          "passes": "skill index (name+description)",
+          "note": "build_skills_system_prompt; body is lazy (prompt_builder.py:1244)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "tool-exec",
+          "passes": "ToolCall(skill_view, {name})",
+          "note": "Load body on demand (skills_tool.py:862)"
+        },
+        {
+          "from": "tool-exec",
+          "to": "skills-store",
+          "passes": "Read SKILL.md",
+          "note": "Full text into the tool result (progressive disclosure)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "skills-store",
+          "passes": "messages snapshot (background review)",
+          "note": "After the turn, background_review (forked AIAgent) creates/patches via skill_manage, agent_created (turn_finalizer.py:393, skill_manager_tool.py:559)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "memory-store",
+          "passes": "messages snapshot (memory nudge)",
+          "note": "Every 10 turns background_review appends to memory (turn_context.py:230, background_review.py:521)"
+        },
+        {
+          "from": "cli",
+          "to": "skills-store",
+          "passes": "agent_created_report",
+          "note": "On launch/periodically the curator tidies/consolidates old skills (7-day interval) (curator.py:1428, cli.py:11926)"
+        }
+      ]
+    },
+    {
+      "id": "cron",
+      "icon": "⏰",
+      "name": "17. Cron scheduled run → delivery",
+      "sub": "tick → unattended run → platform delivery",
+      "description": "A 60-second tick detects due jobs, re-resolves the runtime provider, runs the AIAgent unattended, delivers to the target (Telegram etc.), and updates jobs.json.",
+      "steps": [
+        {
+          "from": "cron-scheduler",
+          "to": "agent-loop",
+          "passes": "job prompt (_build_job_prompt + DELIVERY/SILENT instructions), runtime provider",
+          "note": "60s tick→due job→construct AIAgent→run_conversation (scheduler.py:2130,1870)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "Unattended run (platform='cron', skip_memory)"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "inference request",
+          "note": "Runs with the job's provider/model"
+        },
+        {
+          "from": "agent-loop",
+          "to": "cron-scheduler",
+          "passes": "result {final_response, completed}",
+          "note": "Delivered unless [SILENT] (scheduler.py:1944)"
+        },
+        {
+          "from": "cron-scheduler",
+          "to": "msg-platform",
+          "passes": "deliver target (platform:chat:thread) + text",
+          "note": "_deliver_result→adapter send (scheduler.py:713,876)"
+        },
+        {
+          "from": "msg-platform",
+          "to": "user",
+          "passes": "scheduled result",
+          "note": "Delivery"
+        },
+        {
+          "from": "cron-scheduler",
+          "to": "session-db",
+          "passes": "last_status / next_run_at + session row",
+          "note": "mark_job_run; updates jobs.json (scheduler.py:2103)"
+        }
+      ]
+    },
+    {
+      "id": "batch",
+      "icon": "🏭",
+      "name": "18. Batch trajectory generation",
+      "sub": "dataset → parallel conversations → JSONL",
+      "description": "For each prompt in a JSONL dataset, runs an AIAgent in parallel via multiprocessing.Pool and collects training trajectory records into trajectories.jsonl.",
+      "steps": [
+        {
+          "from": "batch-runner",
+          "to": "agent-loop",
+          "passes": "construct AIAgent + run_conversation(prompt, task_id)",
+          "note": "Turns a JSONL dataset into conversations in parallel via multiprocessing.Pool (batch_runner.py:325,918)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "model-client",
+          "passes": "api_messages + tools",
+          "note": "Runs the standard loop at scale"
+        },
+        {
+          "from": "model-client",
+          "to": "llm-provider",
+          "passes": "chat.completions",
+          "note": "Provider inference"
+        },
+        {
+          "from": "agent-loop",
+          "to": "batch-runner",
+          "passes": "trajectory {conversations:[{from,value}], tool_stats, completed}",
+          "note": "Collects training trajectories into trajectories.jsonl (batch_runner.py:473)"
+        }
+      ]
+    },
+    {
+      "id": "honcho",
+      "icon": "🪞",
+      "name": "19. Honcho dialectic user modeling",
+      "sub": "dialectic query → prompt injection → write-back",
+      "description": "(Optional plugin) memory_manager queries a dialectic user representation via Honcho's peer.chat and injects it into the prompt. At turn end it writes the conversation back.",
+      "steps": [
+        {
+          "from": "agent-loop",
+          "to": "honcho-service",
+          "passes": "dialectic query (current user msg) + target peer",
+          "note": "memory_manager.prefetch_all→HonchoMemoryProvider; LLM runs on the backend (memory_manager.py:452)"
+        },
+        {
+          "from": "honcho-service",
+          "to": "system-prompt",
+          "passes": "peer representation + dialectic synthesis (~600 chars)",
+          "note": "Injected into the prompt as a provider block (honcho __init__.py:578)"
+        },
+        {
+          "from": "agent-loop",
+          "to": "honcho-service",
+          "passes": "user+assistant turn add_messages()",
+          "note": "Write-back at turn/session end (honcho session.py:443)"
+        }
+      ]
+    }
+  ]
+}
