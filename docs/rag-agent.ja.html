@@ -673,7 +673,7 @@ const DEFAULT_THEME = "okabe-ito-light";
 /* ---------- UI chrome i18n (data-driven via meta.lang; default "en") ---------- */
 const I18N = {
   en: {
-    hint: '<kbd>1</kbd>–<kbd>0</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> clear',
+    hint: '<kbd>1</kbd>–<kbd>0</kbd>/<kbd>Tab</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> clear',
     themeTitle: 'Color scheme', zoomIn: 'Zoom in', zoomOut: 'Zoom out', fit: 'Fit (F)',
     selectFlow: 'Select a flow', overviewTitle: 'Overview',
     overviewDesc: n => `Showing all ${n} nodes and every flow's edges. Pick a flow from the chips above, or with number keys 1–9 / 0.`,
@@ -681,7 +681,7 @@ const I18N = {
       'Use <b>← →</b> (or <b>↑ ↓</b>) to step forward/back, <b>Home/End</b> to jump to the ends. Clicking a badge or annotation also pans to that step.'
   },
   ja: {
-    hint: '<kbd>1</kbd>–<kbd>0</kbd> フロー&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> ステップ&nbsp;·&nbsp;<kbd>F</kbd> 全体&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> ズーム&nbsp;·&nbsp;<kbd>Esc</kbd> 解除',
+    hint: '<kbd>1</kbd>–<kbd>0</kbd>/<kbd>Tab</kbd> フロー&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> ステップ&nbsp;·&nbsp;<kbd>F</kbd> 全体&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> ズーム&nbsp;·&nbsp;<kbd>Esc</kbd> 解除',
     themeTitle: 'カラースキーム', zoomIn: 'ズームイン', zoomOut: 'ズームアウト', fit: '全体表示 (F)',
     selectFlow: 'フローを選択', overviewTitle: '概要モード',
     overviewDesc: n => `全 ${n} ノードと全フローのエッジを表示中。上部のチップ、または数字キー 1–9 / 0 でフローを選択してください。`,
@@ -912,6 +912,24 @@ function buildKindIcon(kind, parent){
   }
   return true;
 }
+// Set text and, if it would overflow maxW, truncate with an ellipsis (measuring the
+// real rendered width, so CJK/proportional fonts are handled). The full string is kept
+// as an SVG <title> so hovering a truncated node reveals it.
+function fitText(textEl, full, maxW){
+  textEl.textContent = full;
+  if(!(maxW > 0)) return;
+  let len = 0;
+  try { len = textEl.getComputedTextLength(); } catch(e){ return; }  // not laid out → leave as-is
+  if(!len || len <= maxW) return;
+  let lo = 0, hi = full.length;                        // longest prefix p with p+"…" ≤ maxW
+  while(lo < hi){
+    const mid = Math.ceil((lo + hi) / 2);
+    textEl.textContent = full.slice(0, mid) + "…";
+    if(textEl.getComputedTextLength() <= maxW) lo = mid; else hi = mid - 1;
+  }
+  textEl.textContent = full.slice(0, lo) + "…";
+  el("title", null, textEl).textContent = full;
+}
 function buildNodes(){
   DATA.nodes.forEach(n => {
     const gc = GROUP_COLORS[n.group] || { stroke:"#888", fill:"#222", sub:"#aaa" };
@@ -921,11 +939,12 @@ function buildNodes(){
     el("rect", { class:"node-rect", x:0, y:0, width:n.w, height:n.h, rx:8,
       fill:gc.fill, stroke:gc.stroke, "stroke-width":1.5 }, node);
     const tx = (n.kind && buildKindIcon(n.kind, node)) ? 36 : 13;  // indent past the glyph
+    const maxW = n.w - tx - 13;                                    // keep a right margin
     const t1 = el("text", { class:"node-title", x:tx, y:23 }, node);
-    t1.textContent = n.title;
+    fitText(t1, n.title, maxW);
     if(n.subtitle){
       const t2 = el("text", { class:"node-sub", x:tx, y:41 }, node);
-      t2.textContent = n.subtitle;
+      fitText(t2, n.subtitle, maxW);
     }
     nodeEls[n.id] = node;
   });
@@ -1421,6 +1440,15 @@ function wireInteractions(){
     const k = ev.key;
     if(k >= "1" && k <= "9"){ const i = +k - 1; if(DATA.flows[i]) selectFlow(DATA.flows[i].id, "flow"); }
     else if(k === "0"){ if(DATA.flows[9]) selectFlow(DATA.flows[9].id, "flow"); }
+    // ---- Tab / Shift+Tab: cycle to next / previous flow (wraps) ----
+    else if(k === "Tab"){
+      ev.preventDefault();
+      if(!DATA.flows.length) return;
+      const cur = DATA.flows.findIndex(f => f.id === activeFlowId);
+      const n = DATA.flows.length;
+      const next = cur === -1 ? (ev.shiftKey ? n - 1 : 0) : (cur + (ev.shiftKey ? -1 : 1) + n) % n;
+      selectFlow(DATA.flows[next].id, "flow");
+    }
     else if(k === "f" || k === "F"){ animateView(baseView, 420); }
     else if(k === "+" || k === "="){ const r=svg.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1/1.2); }
     else if(k === "-" || k === "_"){ const r=svg.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); }

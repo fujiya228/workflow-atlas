@@ -8,6 +8,7 @@ How to read a built atlas in the browser. Authoritative: `SPEC.md` §7.
 |--------------------|--------------------------------------------------------------------|
 | `1`–`9`            | Select flow 1–9                                                     |
 | `0`                | Select flow 10                                                      |
+| `Tab` / `Shift`+`Tab` | **Next / previous flow** (cycles; wraps at the ends)            |
 | `→` or `↓`         | **Next step** of the active flow (advance reading order)            |
 | `←` or `↑`         | **Previous step**                                                   |
 | `Home`             | First step                                                          |

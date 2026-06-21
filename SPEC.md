@@ -422,6 +422,10 @@ is RECOMMENDED to match the reference engine but MAY be tuned; the four-surface 
 ### 7.2 Keyboard — flow selection (existing)
 
 - `1`–`9` select flows 1–9; `0` selects flow 10.
+- `Tab` / `Shift`+`Tab` select the **next / previous** flow, cycling through `flows` order and
+  **wrapping** at the ends (with no active flow, `Tab` selects the first flow and `Shift`+`Tab` the
+  last). `Tab` **MUST** `preventDefault` so focus does not leave the canvas. Unlike step stepping
+  (§7.3) flow cycling wraps, since there is no natural first/last to clamp against.
 - `F` fit/zoom to whole atlas. `+`/`-` zoom. `Esc` clears focus, then (second press) exits the flow
   to overview.
 
