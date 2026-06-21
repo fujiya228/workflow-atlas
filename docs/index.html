@@ -111,7 +111,7 @@
   });
   var saved = null;
   try { saved = localStorage.getItem("atlas-lang"); } catch(e){}
-  setLang(saved || (navigator.language && navigator.language.indexOf("ja") === 0 ? "ja" : "en"));
+  setLang(saved || "en");   // default English; remembers the user's manual toggle
 </script>
 </body>
 </html>
