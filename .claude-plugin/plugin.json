@@ -1,7 +1,7 @@
 {
   "name": "workflow-atlas",
   "description": "Specify a project's state nodes and operation flows as JSON, and read them as a single self-contained interactive HTML specification. State × operation, not boxes × arrows. Keyboard-walkable steps, 9 swappable color schemes.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "fujiya228",
     "url": "https://github.com/fujiya228"
