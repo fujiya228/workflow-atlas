@@ -73,7 +73,7 @@ override only when a specific lane must be a fixed brand color. Details: `refere
 
 ```json
 { "id": "documents", "title": "documents", "subtitle": "status=normalized",
-  "group": "ingest", "x": 300, "y": 350, "w": 200, "h": 56 }
+  "kind": "store", "group": "ingest", "x": 300, "y": 350, "w": 200, "h": 56 }
 ```
 
 | Field      | Req | Notes                                            |
@@ -81,10 +81,26 @@ override only when a specific lane must be a fixed brand color. Details: `refere
 | `id`       | ✔   | unique; referenced by steps                      |
 | `title`    | ✔   | bold first line                                  |
 | `subtitle` |     | muted second line (omit → single-line node)      |
+| `kind`     |     | subject type → left-shoulder glyph. One of `trigger` `actor` `process` `decision` `store` (see below). Omit → no glyph. |
 | `group`    | ✔   | a `group.id`                                     |
 | `x`,`y`    | ✔   | top-left in viewBox space                        |
 | `w`,`h`    | ✔   | box size (reference atlas uses `200 × 56`)       |
 | `status`   |     | **RESERVED for v2, ignored by v1.** Don't rely on it. |
+
+**`kind` — the subject type (orthogonal to `group`).** `group`/color answers *which lane
+(responsibility)*; `kind`/glyph answers *what kind of subject*. Closed set:
+
+| `kind`     | glyph      | meaning                                                       |
+|------------|------------|---------------------------------------------------------------|
+| `trigger`  | ⚡ bolt     | the start — human instruction or scheduler/event (one kind)   |
+| `actor`    | 👤 person  | external party / service                                      |
+| `process`  | ⚙ gear     | deterministic, fixed program step                             |
+| `decision` | ◇ diamond  | LLM / non-deterministic judgment                              |
+| `store`    | ⛁ cylinder | persisted data — DB / file / index / buffer                   |
+
+The glyph inherits the lane's accent color and shifts the title text right to make room. An invalid
+`kind` is a build error; an omitted one simply draws no glyph. Most nodes are `store` — reserve the
+other four for the boxes whose subject would otherwise be ambiguous.
 
 Layout tip: keep `x/y/w/h` on a 4px (ideally 20px) grid; place each group's nodes in a vertical
 stack within its column band. See `references/authoring.md`.

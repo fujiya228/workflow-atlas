@@ -67,8 +67,11 @@ function validate(d){
     nodeIds.add(n.id);
   });
   const groupIds = new Set((d.groups || []).map(g => g.id));
+  const KIND_SET = new Set(["trigger", "actor", "process", "decision", "store"]);
   (d.nodes || []).forEach((n, i) => {
     if(n.group && !groupIds.has(n.group)) e.push(`node "${n.id || i}" references unknown group "${n.group}"`);
+    if(n.kind !== undefined && !KIND_SET.has(n.kind))
+      e.push(`node "${n.id || i}" has invalid kind "${n.kind}" (expected: trigger, actor, process, decision, store)`);
   });
 
   const flowIds = new Set();

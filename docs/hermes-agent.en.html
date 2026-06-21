@@ -92,6 +92,10 @@
   }
   .node .node-title{ font-size:12px; font-weight:700; fill:var(--text); pointer-events:none; }
   .node .node-sub{ font-size:10.5px; fill:var(--nsub); pointer-events:none; }
+  /* kind glyph (subject type): drawn at the node's left shoulder, inherits the lane accent */
+  .node .node-kind{ stroke:var(--gstroke); stroke-width:1.4; fill:none;
+    stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
+  .node .node-kind .solid{ fill:var(--gstroke); stroke:none; }
   .node.in-flow .node-rect{ stroke-width:2.5; filter:drop-shadow(0 0 7px var(--gstroke)); }
   .node.dim{ opacity:.18; }
   .node.endpoint .node-rect{ stroke-width:3; animation:node-glow 1.1s ease-in-out infinite; }
@@ -328,6 +332,7 @@
   "nodes": [
     {
       "id": "user",
+      "kind": "actor",
       "title": "User",
       "subtitle": "CLI / message / editor",
       "group": "external",
@@ -338,6 +343,7 @@
     },
     {
       "id": "msg-platform",
+      "kind": "actor",
       "title": "Messaging platforms",
       "subtitle": "Telegram / Slack / Discord / Email",
       "group": "external",
@@ -348,6 +354,7 @@
     },
     {
       "id": "llm-provider",
+      "kind": "actor",
       "title": "LLM provider",
       "subtitle": "OpenAI-compatible / Anthropic / Bedrock / Codex",
       "group": "external",
@@ -358,6 +365,7 @@
     },
     {
       "id": "mcp-server",
+      "kind": "actor",
       "title": "External MCP server",
       "subtitle": "stdio / HTTP / SSE",
       "group": "external",
@@ -368,6 +376,7 @@
     },
     {
       "id": "exec-backend",
+      "kind": "actor",
       "title": "Execution backend",
       "subtitle": "local / Docker / SSH / Modal / Daytona",
       "group": "external",
@@ -378,6 +387,7 @@
     },
     {
       "id": "honcho-service",
+      "kind": "actor",
       "title": "Honcho service",
       "subtitle": "Dialectic user modeling (optional)",
       "group": "external",
@@ -388,6 +398,7 @@
     },
     {
       "id": "cli",
+      "kind": "trigger",
       "title": "CLI / REPL",
       "subtitle": "hermes_cli.main → cli.py",
       "group": "entry",
@@ -398,6 +409,7 @@
     },
     {
       "id": "gateway",
+      "kind": "trigger",
       "title": "Messaging Gateway",
       "subtitle": "GatewayRunner + HTTP API",
       "group": "entry",
@@ -408,6 +420,7 @@
     },
     {
       "id": "tui-gateway",
+      "kind": "trigger",
       "title": "TUI Gateway",
       "subtitle": "tui_gateway (Node bridge)",
       "group": "entry",
@@ -418,6 +431,7 @@
     },
     {
       "id": "acp-adapter",
+      "kind": "trigger",
       "title": "ACP adapter",
       "subtitle": "acp_adapter (editor integration)",
       "group": "entry",
@@ -428,6 +442,7 @@
     },
     {
       "id": "cron-scheduler",
+      "kind": "trigger",
       "title": "Cron scheduler",
       "subtitle": "cron/scheduler.py",
       "group": "entry",
@@ -438,6 +453,7 @@
     },
     {
       "id": "batch-runner",
+      "kind": "trigger",
       "title": "Batch runner",
       "subtitle": "batch_runner.py (trajectory generation)",
       "group": "entry",
@@ -448,6 +464,7 @@
     },
     {
       "id": "system-prompt",
+      "kind": "process",
       "title": "System prompt assembly",
       "subtitle": "identity + memory + skills",
       "group": "core",
@@ -458,6 +475,7 @@
     },
     {
       "id": "agent-loop",
+      "kind": "decision",
       "title": "Agent loop",
       "subtitle": "run_conversation (conversation_loop)",
       "group": "core",
@@ -468,6 +486,7 @@
     },
     {
       "id": "model-client",
+      "kind": "process",
       "title": "Model client",
       "subtitle": "provider selection + LLM call",
       "group": "core",
@@ -478,6 +497,7 @@
     },
     {
       "id": "code-exec",
+      "kind": "process",
       "title": "execute_code RPC",
       "subtitle": "zero-context pipeline",
       "group": "tools",
@@ -488,6 +508,7 @@
     },
     {
       "id": "mcp-client",
+      "kind": "process",
       "title": "MCP client",
       "subtitle": "tools/mcp_tool.py",
       "group": "tools",
@@ -498,6 +519,7 @@
     },
     {
       "id": "tool-exec",
+      "kind": "process",
       "title": "Tool execution dispatch",
       "subtitle": "registry.dispatch",
       "group": "tools",
@@ -508,6 +530,7 @@
     },
     {
       "id": "terminal-tool",
+      "kind": "process",
       "title": "Terminal tool",
       "subtitle": "tools/terminal_tool.py",
       "group": "tools",
@@ -518,6 +541,7 @@
     },
     {
       "id": "delegate",
+      "kind": "decision",
       "title": "Sub-agent delegation",
       "subtitle": "delegate_task → child AIAgent",
       "group": "tools",
@@ -528,6 +552,7 @@
     },
     {
       "id": "session-db",
+      "kind": "store",
       "title": "Session DB",
       "subtitle": "SQLite + FTS5 (hermes_state)",
       "group": "state",
@@ -538,6 +563,7 @@
     },
     {
       "id": "memory-store",
+      "kind": "store",
       "title": "Memory",
       "subtitle": "MEMORY.md / USER.md",
       "group": "state",
@@ -548,6 +574,7 @@
     },
     {
       "id": "skills-store",
+      "kind": "store",
       "title": "Skill store",
       "subtitle": "skills + curator / background review",
       "group": "state",
@@ -854,6 +881,7 @@
     },
     {
       "id": "delegate",
+      "kind": "decision",
       "icon": "👥",
       "name": "7. Sub-agent delegation",
       "sub": "delegate_task → child AIAgent → collect summary",
@@ -1598,6 +1626,33 @@ function buildGrid(){
 }
 
 /* ---------- nodes ---------- */
+// kind = the node's "subject type" (orthogonal to group/lane). Each renders a small
+// outline glyph at the left shoulder; unknown/absent kinds draw nothing.
+const KIND_SET = new Set(["trigger", "actor", "process", "decision", "store"]);
+function buildKindIcon(kind, parent){
+  if(!KIND_SET.has(kind)) return false;
+  const g = el("g", { class:"node-kind", transform:"translate(19,28)" }, parent);
+  if(kind === "trigger"){            // ⚡ event / start (human or scheduler)
+    el("path", { class:"solid", d:"M1.5,-7 L-4.2,1.2 L-0.6,1.2 L-1.6,7 L4.2,-1.2 L0.6,-1.2 Z" }, g);
+  } else if(kind === "actor"){       // 👤 external party / service
+    el("circle", { cx:0, cy:-3.6, r:2.6 }, g);
+    el("path", { d:"M-5,7 a5,4.8 0 0 1 10,0" }, g);
+  } else if(kind === "process"){     // ⚙ deterministic program step
+    el("circle", { cx:0, cy:0, r:3 }, g);
+    for(let k = 0; k < 6; k++){
+      const a = k * Math.PI / 3, c = Math.cos(a), s = Math.sin(a);
+      el("line", { x1:(3*c).toFixed(2), y1:(3*s).toFixed(2),
+                   x2:(4.8*c).toFixed(2), y2:(4.8*s).toFixed(2) }, g);
+    }
+    el("circle", { class:"solid", cx:0, cy:0, r:0.9 }, g);
+  } else if(kind === "decision"){    // ◇ LLM / non-deterministic judgment
+    el("path", { d:"M0,-7 L7,0 L0,7 L-7,0 Z" }, g);
+  } else if(kind === "store"){       // ⛁ persisted data (DB / file / index)
+    el("ellipse", { cx:0, cy:-4, rx:5.4, ry:1.9 }, g);
+    el("path", { d:"M-5.4,-4 L-5.4,4 A5.4,1.9 0 0 0 5.4,4 L5.4,-4" }, g);
+  }
+  return true;
+}
 function buildNodes(){
   DATA.nodes.forEach(n => {
     const gc = GROUP_COLORS[n.group] || { stroke:"#888", fill:"#222", sub:"#aaa" };
@@ -1606,10 +1661,11 @@ function buildNodes(){
     node.setAttribute("transform", `translate(${n.x},${n.y})`);
     el("rect", { class:"node-rect", x:0, y:0, width:n.w, height:n.h, rx:8,
       fill:gc.fill, stroke:gc.stroke, "stroke-width":1.5 }, node);
-    const t1 = el("text", { class:"node-title", x:13, y:23 }, node);
+    const tx = (n.kind && buildKindIcon(n.kind, node)) ? 36 : 13;  // indent past the glyph
+    const t1 = el("text", { class:"node-title", x:tx, y:23 }, node);
     t1.textContent = n.title;
     if(n.subtitle){
-      const t2 = el("text", { class:"node-sub", x:13, y:41 }, node);
+      const t2 = el("text", { class:"node-sub", x:tx, y:41 }, node);
       t2.textContent = n.subtitle;
     }
     nodeEls[n.id] = node;

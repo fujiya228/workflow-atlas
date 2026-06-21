@@ -65,6 +65,7 @@
   "nodes": [
     {
       "id": "user",
+      "kind": "actor",
       "title": "User",
       "subtitle": "CLI / message / editor",
       "group": "external",
@@ -75,6 +76,7 @@
     },
     {
       "id": "msg-platform",
+      "kind": "actor",
       "title": "Messaging platforms",
       "subtitle": "Telegram / Slack / Discord / Email",
       "group": "external",
@@ -85,6 +87,7 @@
     },
     {
       "id": "llm-provider",
+      "kind": "actor",
       "title": "LLM provider",
       "subtitle": "OpenAI-compatible / Anthropic / Bedrock / Codex",
       "group": "external",
@@ -95,6 +98,7 @@
     },
     {
       "id": "mcp-server",
+      "kind": "actor",
       "title": "External MCP server",
       "subtitle": "stdio / HTTP / SSE",
       "group": "external",
@@ -105,6 +109,7 @@
     },
     {
       "id": "exec-backend",
+      "kind": "actor",
       "title": "Execution backend",
       "subtitle": "local / Docker / SSH / Modal / Daytona",
       "group": "external",
@@ -115,6 +120,7 @@
     },
     {
       "id": "honcho-service",
+      "kind": "actor",
       "title": "Honcho service",
       "subtitle": "Dialectic user modeling (optional)",
       "group": "external",
@@ -125,6 +131,7 @@
     },
     {
       "id": "cli",
+      "kind": "trigger",
       "title": "CLI / REPL",
       "subtitle": "hermes_cli.main → cli.py",
       "group": "entry",
@@ -135,6 +142,7 @@
     },
     {
       "id": "gateway",
+      "kind": "trigger",
       "title": "Messaging Gateway",
       "subtitle": "GatewayRunner + HTTP API",
       "group": "entry",
@@ -145,6 +153,7 @@
     },
     {
       "id": "tui-gateway",
+      "kind": "trigger",
       "title": "TUI Gateway",
       "subtitle": "tui_gateway (Node bridge)",
       "group": "entry",
@@ -155,6 +164,7 @@
     },
     {
       "id": "acp-adapter",
+      "kind": "trigger",
       "title": "ACP adapter",
       "subtitle": "acp_adapter (editor integration)",
       "group": "entry",
@@ -165,6 +175,7 @@
     },
     {
       "id": "cron-scheduler",
+      "kind": "trigger",
       "title": "Cron scheduler",
       "subtitle": "cron/scheduler.py",
       "group": "entry",
@@ -175,6 +186,7 @@
     },
     {
       "id": "batch-runner",
+      "kind": "trigger",
       "title": "Batch runner",
       "subtitle": "batch_runner.py (trajectory generation)",
       "group": "entry",
@@ -185,6 +197,7 @@
     },
     {
       "id": "system-prompt",
+      "kind": "process",
       "title": "System prompt assembly",
       "subtitle": "identity + memory + skills",
       "group": "core",
@@ -195,6 +208,7 @@
     },
     {
       "id": "agent-loop",
+      "kind": "decision",
       "title": "Agent loop",
       "subtitle": "run_conversation (conversation_loop)",
       "group": "core",
@@ -205,6 +219,7 @@
     },
     {
       "id": "model-client",
+      "kind": "process",
       "title": "Model client",
       "subtitle": "provider selection + LLM call",
       "group": "core",
@@ -215,6 +230,7 @@
     },
     {
       "id": "code-exec",
+      "kind": "process",
       "title": "execute_code RPC",
       "subtitle": "zero-context pipeline",
       "group": "tools",
@@ -225,6 +241,7 @@
     },
     {
       "id": "mcp-client",
+      "kind": "process",
       "title": "MCP client",
       "subtitle": "tools/mcp_tool.py",
       "group": "tools",
@@ -235,6 +252,7 @@
     },
     {
       "id": "tool-exec",
+      "kind": "process",
       "title": "Tool execution dispatch",
       "subtitle": "registry.dispatch",
       "group": "tools",
@@ -245,6 +263,7 @@
     },
     {
       "id": "terminal-tool",
+      "kind": "process",
       "title": "Terminal tool",
       "subtitle": "tools/terminal_tool.py",
       "group": "tools",
@@ -255,6 +274,7 @@
     },
     {
       "id": "delegate",
+      "kind": "decision",
       "title": "Sub-agent delegation",
       "subtitle": "delegate_task → child AIAgent",
       "group": "tools",
@@ -265,6 +285,7 @@
     },
     {
       "id": "session-db",
+      "kind": "store",
       "title": "Session DB",
       "subtitle": "SQLite + FTS5 (hermes_state)",
       "group": "state",
@@ -275,6 +296,7 @@
     },
     {
       "id": "memory-store",
+      "kind": "store",
       "title": "Memory",
       "subtitle": "MEMORY.md / USER.md",
       "group": "state",
@@ -285,6 +307,7 @@
     },
     {
       "id": "skills-store",
+      "kind": "store",
       "title": "Skill store",
       "subtitle": "skills + curator / background review",
       "group": "state",
@@ -591,6 +614,7 @@
     },
     {
       "id": "delegate",
+      "kind": "decision",
       "icon": "👥",
       "name": "7. Sub-agent delegation",
       "sub": "delegate_task → child AIAgent → collect summary",

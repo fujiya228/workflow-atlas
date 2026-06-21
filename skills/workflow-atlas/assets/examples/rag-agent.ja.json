@@ -22,20 +22,20 @@
     { "id": "output",   "label": "Output" }
   ],
   "nodes": [
-    { "id": "user",       "title": "User",          "subtitle": "質問 / 目的",          "group": "input",    "x": 40,   "y": 300, "w": 200, "h": 56 },
-    { "id": "raw-docs",   "title": "Raw docs",      "subtitle": "PDF / web / markdown", "group": "input",    "x": 40,   "y": 560, "w": 200, "h": 56 },
-    { "id": "chunks",     "title": "Chunks",        "subtitle": "split + overlap",      "group": "index",    "x": 300,  "y": 120, "w": 200, "h": 56 },
-    { "id": "embeddings", "title": "Embeddings",    "subtitle": "dense vector",         "group": "index",    "x": 300,  "y": 320, "w": 200, "h": 56 },
-    { "id": "vstore",     "title": "Vector store",  "subtitle": "ANN 索引 (HNSW/IVF)",  "group": "index",    "x": 300,  "y": 520, "w": 200, "h": 56 },
-    { "id": "retriever",  "title": "Retriever",     "subtitle": "top-k / rerank",       "group": "retrieve", "x": 560,  "y": 320, "w": 200, "h": 56 },
-    { "id": "context",    "title": "Context",       "subtitle": "組み立て + 出典",       "group": "retrieve", "x": 560,  "y": 520, "w": 200, "h": 56 },
-    { "id": "llm",        "title": "LLM",           "subtitle": "Claude / GPT",         "group": "agent",    "x": 820,  "y": 200, "w": 200, "h": 56 },
-    { "id": "scratchpad", "title": "Scratchpad",    "subtitle": "中間推論 (ReAct)",      "group": "agent",    "x": 820,  "y": 400, "w": 200, "h": 56 },
-    { "id": "memory",     "title": "Memory",        "subtitle": "会話履歴",             "group": "agent",    "x": 820,  "y": 600, "w": 200, "h": 56 },
-    { "id": "tool-reg",   "title": "Tool registry", "subtitle": "関数スキーマ",          "group": "tools",    "x": 1080, "y": 300, "w": 200, "h": 56 },
-    { "id": "tool-exec",  "title": "Tool exec",     "subtitle": "副作用 / 外部 API",     "group": "tools",    "x": 1080, "y": 520, "w": 200, "h": 56 },
-    { "id": "answer",     "title": "Answer",        "subtitle": "最終回答",             "group": "output",   "x": 1340, "y": 300, "w": 200, "h": 56 },
-    { "id": "citations",  "title": "Citations",     "subtitle": "出典 snapshot",         "group": "output",   "x": 1340, "y": 520, "w": 200, "h": 56 }
+    { "id": "user",       "kind": "actor",    "title": "User",          "subtitle": "質問 / 目的",              "group": "input",    "x": 40,   "y": 300, "w": 200, "h": 56 },
+    { "id": "raw-docs",   "kind": "store",    "title": "Raw docs",      "subtitle": "PDF / web / markdown", "group": "input",    "x": 40,   "y": 560, "w": 200, "h": 56 },
+    { "id": "chunks",     "kind": "store",    "title": "Chunks",        "subtitle": "split + overlap",      "group": "index",    "x": 300,  "y": 120, "w": 200, "h": 56 },
+    { "id": "embeddings", "kind": "store",    "title": "Embeddings",    "subtitle": "dense vector",         "group": "index",    "x": 300,  "y": 320, "w": 200, "h": 56 },
+    { "id": "vstore",     "kind": "store",    "title": "Vector store",  "subtitle": "ANN 索引 (HNSW/IVF)",    "group": "index",    "x": 300,  "y": 520, "w": 200, "h": 56 },
+    { "id": "retriever",  "kind": "process",  "title": "Retriever",     "subtitle": "top-k / rerank",       "group": "retrieve", "x": 560,  "y": 320, "w": 200, "h": 56 },
+    { "id": "context",    "kind": "store",    "title": "Context",       "subtitle": "組み立て + 出典",            "group": "retrieve", "x": 560,  "y": 520, "w": 200, "h": 56 },
+    { "id": "llm",        "kind": "decision", "title": "LLM",           "subtitle": "Claude / GPT",         "group": "agent",    "x": 820,  "y": 200, "w": 200, "h": 56 },
+    { "id": "scratchpad", "kind": "store",    "title": "Scratchpad",    "subtitle": "中間推論 (ReAct)",         "group": "agent",    "x": 820,  "y": 400, "w": 200, "h": 56 },
+    { "id": "memory",     "kind": "store",    "title": "Memory",        "subtitle": "会話履歴",                 "group": "agent",    "x": 820,  "y": 600, "w": 200, "h": 56 },
+    { "id": "tool-reg",   "kind": "store",    "title": "Tool registry", "subtitle": "関数スキーマ",               "group": "tools",    "x": 1080, "y": 300, "w": 200, "h": 56 },
+    { "id": "tool-exec",  "kind": "process",  "title": "Tool exec",     "subtitle": "副作用 / 外部 API",         "group": "tools",    "x": 1080, "y": 520, "w": 200, "h": 56 },
+    { "id": "answer",     "kind": "store",    "title": "Answer",        "subtitle": "最終回答",                 "group": "output",   "x": 1340, "y": 300, "w": 200, "h": 56 },
+    { "id": "citations",  "kind": "store",    "title": "Citations",     "subtitle": "出典 snapshot",          "group": "output",   "x": 1340, "y": 520, "w": 200, "h": 56 }
   ],
   "flows": [
     {
