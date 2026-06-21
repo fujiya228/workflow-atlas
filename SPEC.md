@@ -95,14 +95,33 @@ Both paths **MUST** produce byte-for-byte equivalent rendering for the same data
 
 An **Atlas** is the tuple `(meta, viewBox, columns[], groups[], nodes[], flows[])`.
 
-### 3.1 Node — a *state*
+### 3.1 Node — a *subject (state / entity)*
 
-A **Node** represents a durable state, component, table, or store — *a thing the system can be in
-or hold*, not an action. Each node belongs to exactly one **Group** (its lane) and is positioned
+A **Node** represents a subject — a durable state, component, table, store, external actor, or
+processing step — *a thing the system can be in, hold, or be acted on by*, not an event. Each node
+belongs to exactly one **Group** (its lane), **MAY** declare a **kind** (§3.1.1), and is positioned
 absolutely within the viewBox.
 
 > Examples (from the reference atlas): `documents (status=normalized)`, `document_raw`,
 > `entities / document_entities`, `knowledge/`.
+
+#### 3.1.1 `node.kind` — subject type (OPTIONAL)
+
+`kind` is an OPTIONAL enum that declares *what kind of subject* a node is, **orthogonal** to
+`group`: the group/color encodes *which lane (responsibility)*; the kind/glyph encodes *the subject
+type*. The Engine renders a small outline glyph at the node's left shoulder and indents the title to
+clear it. The closed value set is:
+
+| `kind`     | glyph      | subject                                                       |
+|------------|------------|---------------------------------------------------------------|
+| `trigger`  | bolt       | the start — a human instruction **or** a scheduler/event (one kind, not two) |
+| `actor`    | person     | an external party or service                                  |
+| `process`  | gear       | a deterministic, fixed program step                           |
+| `decision` | diamond    | an LLM / non-deterministic judgment                           |
+| `store`    | cylinder   | persisted data — DB / file / index / buffer                   |
+
+An omitted `kind` draws no glyph (back-compatible). Any value outside the set is a validation error
+(§3.6).
 
 ### 3.2 Flow — an *operation*
 
@@ -129,6 +148,13 @@ Multiple steps **MAY** share the same `(from,to)` pair; the Engine aggregates th
 A **Group** is a visual+semantic lane. Every node names a group; the group determines the node's
 category color (§5.4). Groups are categories, *not* states (per §1.2.1).
 
+Groups **SHOULD** be divided on an axis **orthogonal to flow direction** — a static partition such
+as responsibility / architectural layer (e.g. `External / Entry / Core / Tools / State`), subsystem
+ownership, or subject `kind`. Authors **MUST NOT** divide lanes by *time / processing step*: flows
+already encode order, so a temporal lane axis double-encodes it, collapses every lane to the same
+shape, and renders node subjects illegible. Heuristic: if every arrow runs left→right the lane axis
+has become time; well-formed lanes are crossed by arrows in both directions.
+
 ### 3.5 Column — a *layout band*
 
 A **Column** is a labeled vertical band used purely for layout legibility (a header label and an
@@ -142,6 +168,7 @@ degrade gracefully):
 
 1. Every `node.id` is unique.
 2. Every `node.group` references an existing `group.id`.
+2a. Every `node.kind`, if present, is one of `trigger` `actor` `process` `decision` `store`.
 3. Every `step.from` and `step.to` reference an existing `node.id`.
 4. Every `flow.id` is unique; every `step.passes` is a non-empty string.
 5. `viewBox.w > 0` and `viewBox.h > 0`.
@@ -201,6 +228,7 @@ The Engine **MUST** load data by: (a) reading `#workflow-data` if present (enabl
     "id":       "string",          // REQUIRED unique
     "title":    "string",          // REQUIRED — bold line
     "subtitle": "string?",         // OPTIONAL — muted second line
+    "kind":     "\"trigger\" | \"actor\" | \"process\" | \"decision\" | \"store\"", // OPTIONAL — subject type → left-shoulder glyph (§3.1.1)
     "group":    "string",          // REQUIRED — group.id
     "x": "number", "y": "number",  // REQUIRED — top-left in viewBox space
     "w": "number", "h": "number"   // REQUIRED — box size

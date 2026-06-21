@@ -20,12 +20,49 @@ Concretely:
 A read-only operation is still a flow — its last step often returns to the human/actor node with
 "no writeback" in the `note` (see the reference atlas flow #8).
 
-## 2. Group nodes into lanes (categories)
+## 2. Group nodes into lanes — by responsibility, never by time
 
-A **group** is a category that shares a color: `External`, `Ingest`, `Enrich`, `LLM`, `Derive`,
-`Knowledge`. Pick 4–8 groups. Groups should be *kinds of state*, not *statuses*. Order them
-left→right in the order data tends to flow; the theme assigns lane colors by this order, so the
-left-most group gets palette color 0.
+A **group** is a category that shares a color. Pick 4–8. The axis you divide on decides whether the
+atlas reads clearly or turns to mush.
+
+**The one rule: the lane axis must be orthogonal to the arrows.** Flows (arrows) already encode
+time and order. If your lanes *also* encode time — i.e. you make one lane per processing step or per
+output produced — you've drawn the time axis twice. The symptoms: arrows all march left→right, every
+lane looks structurally identical (a process + its data), and you can no longer tell what *kind* of
+subject each box is. This is the most common authoring mistake.
+
+Instead pick a **static** partition — one that doesn't move as a run progresses:
+
+| Lane axis                              | Example                                  | Verdict |
+|----------------------------------------|------------------------------------------|---------|
+| responsibility / architectural layer   | `External / Entry / Core / Tools / State` (hermes) | ◎ best default |
+| subsystem / team ownership             | `service-a / service-b / shared`         | ◎ |
+| subject kind                           | `Triggers / Actors / Processes / Stores` | ○ (folds the `kind` axis into lanes) |
+| data-flow phase                        | `Input / Index / Retrieve / Output` (rag) | △ drifts toward time at the ends |
+| **time / processing step**             | `Step 1 / Step 2 / Step 3`               | ✗ collides with the arrows |
+
+> **Self-check.** 🔴 Arrows flow almost entirely left→right → lanes have become *time*; re-cut them.
+> 🟢 Arrows criss-cross between lanes in both directions → lanes are orthogonal to flow. Good.
+
+Order groups left→right in the order data tends to flow; the theme assigns lane colors by this
+order, so the left-most group gets palette color 0.
+
+## 2b. Tag each node's subject with `kind`
+
+Lanes (color) tell the reader *which responsibility* a box belongs to. They do **not** tell the
+reader *what kind of subject* it is. Add `kind` for that — it draws a glyph at the left shoulder and
+is fully orthogonal to `group`:
+
+| `kind`     | for                                                  |
+|------------|------------------------------------------------------|
+| `trigger`  | the start — a human instruction **or** a scheduler/event (don't split these into two) |
+| `actor`    | an external party or service                          |
+| `process`  | a deterministic, fixed program step                  |
+| `decision` | an LLM / non-deterministic judgment                  |
+| `store`    | persisted data — DB, file, index, buffer             |
+
+Most nodes are `store`; the handful of non-store glyphs are what make the diagram scannable. If a
+node doesn't cleanly fit one value, omit `kind` rather than forcing it.
 
 ## 3. Lay out the grid
 
@@ -58,8 +95,9 @@ left-most group gets palette color 0.
 
 ## 6. Checklist before building
 
-- [ ] Every node is a noun/state; every flow is a verb/operation.
-- [ ] 4–8 groups, ordered to match data flow.
+- [ ] Every node is a subject/state; every flow is a verb/operation.
+- [ ] 4–8 groups divided by **responsibility, not time** — arrows criss-cross lanes (not all left→right).
+- [ ] `kind` set on nodes whose subject would otherwise be ambiguous (trigger/actor/process/decision/store).
 - [ ] Columns labeled, dividers placed, nodes on a tidy grid with top headroom.
 - [ ] Flow names numbered; steps in reading order; `passes` short and concrete.
 - [ ] `node scripts/atlas build data.json --validate-only` passes.

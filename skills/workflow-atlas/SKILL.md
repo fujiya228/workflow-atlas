@@ -20,8 +20,9 @@ editing. `SPEC.md` (repo root) is the normative source of truth; this file is th
 
 ## Core model (memorize this)
 
-- **node = a state.** A durable thing the system *is in* or *holds* — a table, store, component,
-  file, queue. Not an action. Belongs to one **group** (lane / category).
+- **node = a subject** (a thing, not an event). A durable state the system *is in* or *holds*, or
+  the entity that owns one — a table, store, component, file, queue, actor, processing step.
+  Belongs to one **group** (lane / category) and optionally declares a **kind** (its subject type).
 - **flow = an operation.** A command/job/pipeline/handoff that transforms state. An ordered list
   of **steps** — the order is the reading order.
 - **step = a directed transition `(from → to)` carrying `passes`** (the payload/contract) and an
@@ -29,7 +30,43 @@ editing. `SPEC.md` (repo root) is the normative source of truth; this file is th
 - **group = a category lane** (color). **column = a layout band** (header + optional divider).
 
 If you catch yourself making a node a verb ("send email"), it's probably a *flow step*, not a node.
-Nodes are nouns; flows are verbs.
+Nodes are subjects; flows are verbs.
+
+### node.kind — make the subject legible (optional but recommended)
+
+A box alone can't tell the reader *what kind of thing it is* — an actor? a program step? an LLM
+judgment? stored data? Set `kind` to render a small glyph at the node's left shoulder. The five
+values (a closed set) and their glyphs:
+
+| `kind`     | glyph | use for                                              |
+|------------|-------|------------------------------------------------------|
+| `trigger`  | ⚡ bolt    | the start: a human instruction **or** a scheduler/event (one kind — don't split them) |
+| `actor`    | 👤 person  | an external party or service the system talks to     |
+| `process`  | ⚙ gear     | a deterministic, fixed program step                  |
+| `decision` | ◇ diamond  | an LLM / non-deterministic judgment                  |
+| `store`    | ⛁ cylinder | persisted data — DB, file, index, buffer             |
+
+`kind` is **orthogonal to `group`**: color says *which lane* (responsibility), the glyph says *what
+subject type*. Most nodes in a system are `store`; the few `decision`/`process`/`actor`/`trigger`
+glyphs are what carry the reading. Omit `kind` if a node doesn't cleanly fit — it just draws no glyph.
+
+### Lanes (groups): divide by responsibility, never by time
+
+The single most common modeling mistake is splitting lanes **per processing step / per output**, so
+the lanes become a left-to-right timeline. Don't. The arrows (flows) already carry time and order —
+if the lanes also encode time, you've drawn the same axis twice, every lane looks structurally
+identical, and the subject of each box becomes unreadable.
+
+Pick a lane axis that is **orthogonal to the arrows** — a *static* partition that doesn't move as
+the run progresses:
+
+- **by responsibility / architectural layer** — `External / Entry / Core / Tools / State` (best default; see `hermes-agent` example)
+- **by subsystem or team ownership**
+- **by subject kind** — if you'd rather make the `kind` axis the lanes themselves
+
+> **Self-check — is my lane axis right?**
+> - 🔴 Arrows flow almost entirely left→right in one direction → lanes have become *time*. Re-cut them.
+> - 🟢 Arrows criss-cross between lanes in both directions (External→Core→State→Core…) → lanes are *responsibility*, orthogonal to flow. Good.
 
 ## Workflow (what to do when invoked)
 
@@ -65,8 +102,9 @@ Nodes are nouns; flows are verbs.
 
 ## Invariants the data must satisfy
 
-Unique `node.id` and `flow.id`; every `node.group` is a real group; every `step.from`/`step.to` is
-a real node id; every `step.passes` is non-empty; `viewBox.w/h > 0`; each flow has ≥1 step.
+Unique `node.id` and `flow.id`; every `node.group` is a real group; every `node.kind` (if set) is
+one of the five values; every `step.from`/`step.to` is a real node id; every `step.passes` is
+non-empty; `viewBox.w/h > 0`; each flow has ≥1 step.
 `atlas build --validate-only data.json` checks all of these and prints precise errors.
 
 ## Constraints (style)
