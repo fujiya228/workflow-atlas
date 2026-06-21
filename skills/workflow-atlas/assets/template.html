@@ -613,6 +613,24 @@ function buildKindIcon(kind, parent){
   }
   return true;
 }
+// Set text and, if it would overflow maxW, truncate with an ellipsis (measuring the
+// real rendered width, so CJK/proportional fonts are handled). The full string is kept
+// as an SVG <title> so hovering a truncated node reveals it.
+function fitText(textEl, full, maxW){
+  textEl.textContent = full;
+  if(!(maxW > 0)) return;
+  let len = 0;
+  try { len = textEl.getComputedTextLength(); } catch(e){ return; }  // not laid out → leave as-is
+  if(!len || len <= maxW) return;
+  let lo = 0, hi = full.length;                        // longest prefix p with p+"…" ≤ maxW
+  while(lo < hi){
+    const mid = Math.ceil((lo + hi) / 2);
+    textEl.textContent = full.slice(0, mid) + "…";
+    if(textEl.getComputedTextLength() <= maxW) lo = mid; else hi = mid - 1;
+  }
+  textEl.textContent = full.slice(0, lo) + "…";
+  el("title", null, textEl).textContent = full;
+}
 function buildNodes(){
   DATA.nodes.forEach(n => {
     const gc = GROUP_COLORS[n.group] || { stroke:"#888", fill:"#222", sub:"#aaa" };
@@ -622,11 +640,12 @@ function buildNodes(){
     el("rect", { class:"node-rect", x:0, y:0, width:n.w, height:n.h, rx:8,
       fill:gc.fill, stroke:gc.stroke, "stroke-width":1.5 }, node);
     const tx = (n.kind && buildKindIcon(n.kind, node)) ? 36 : 13;  // indent past the glyph
+    const maxW = n.w - tx - 13;                                    // keep a right margin
     const t1 = el("text", { class:"node-title", x:tx, y:23 }, node);
-    t1.textContent = n.title;
+    fitText(t1, n.title, maxW);
     if(n.subtitle){
       const t2 = el("text", { class:"node-sub", x:tx, y:41 }, node);
-      t2.textContent = n.subtitle;
+      fitText(t2, n.subtitle, maxW);
     }
     nodeEls[n.id] = node;
   });
