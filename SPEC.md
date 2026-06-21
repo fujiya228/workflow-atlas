@@ -175,7 +175,8 @@ The Engine **MUST** load data by: (a) reading `#workflow-data` if present (enabl
   "meta": {
     "title":  "string",            // REQUIRED — document + <title>
     "repo":   "string?",           // OPTIONAL — project root, shown in header
-    "note":   "string?"            // OPTIONAL — legend / ADR pointer
+    "note":   "string?",           // OPTIONAL — legend / ADR pointer
+    "lang":   "\"en\" | \"ja\""    // OPTIONAL — UI-chrome language (default "en"); sets <html lang>
   },
   "viewBox": { "w": "number", "h": "number" },   // REQUIRED — SVG coordinate space
 

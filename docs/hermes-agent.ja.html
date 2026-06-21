@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="okabe-ito-light">
+<html lang="ja" data-theme="okabe-ito-light">
 <!--
   Workflow Atlas — single-file interactive specification (state × operation).
   See SPEC.md. Author edits ONLY data; engine/themes are generic.
@@ -220,14 +220,14 @@
     <div class="brand"><span class="glyph">◆</span> <span id="brand-title">Workflow Atlas</span></div>
     <div class="sub" id="brand-sub"></div>
     <div class="spacer"></div>
-    <select id="theme-select" title="カラースキーム"></select>
-    <div class="hint"><kbd>1</kbd>–<kbd>0</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> 解除</div>
+    <select id="theme-select" title="Color scheme"></select>
+    <div class="hint" id="hint"><kbd>1</kbd>–<kbd>0</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> clear</div>
   </header>
   <div id="chips"></div>
   <main>
     <aside>
       <div class="anno-head">
-        <div class="ttl"><span class="ic" id="anno-ic">🗺️</span><span id="anno-title">フローを選択</span></div>
+        <div class="ttl"><span class="ic" id="anno-ic">🗺️</span><span id="anno-title">Select a flow</span></div>
         <div class="desc" id="anno-desc"></div>
       </div>
       <div class="anno-scroll" id="anno-scroll"></div>
@@ -235,9 +235,9 @@
     <div id="stage">
       <svg id="canvas" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="zoomctl">
-        <button data-z="in" title="ズームイン">＋</button>
-        <button data-z="out" title="ズームアウト">－</button>
-        <button data-z="fit" title="全体表示 (F)">⤢</button>
+        <button data-z="in" title="Zoom in">＋</button>
+        <button data-z="out" title="Zoom out">－</button>
+        <button data-z="fit" title="Fit (F)">⤢</button>
       </div>
     </div>
   </main>
@@ -263,6 +263,7 @@
 /*ATLAS:DATA*/
 {
   "meta": {
+    "lang": "ja",
     "title": "Hermes Agent — パッケージ/コンポーネント間ワークフロー",
     "repo": "github.com/nousresearch/hermes-agent",
     "note": "実コードのトレースに基づく。各 step の note 末尾は file:line の根拠。"
@@ -1383,6 +1384,27 @@ const LANE = 38;
 const OFFSETS = [0.50,0.44,0.56,0.38,0.62,0.32,0.68,0.26,0.74,0.20,0.80,0.15,0.85,0.10,0.90];
 const DEFAULT_THEME = "okabe-ito-light";
 
+/* ---------- UI chrome i18n (data-driven via meta.lang; default "en") ---------- */
+const I18N = {
+  en: {
+    hint: '<kbd>1</kbd>–<kbd>0</kbd> flow&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> step&nbsp;·&nbsp;<kbd>F</kbd> fit&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> zoom&nbsp;·&nbsp;<kbd>Esc</kbd> clear',
+    themeTitle: 'Color scheme', zoomIn: 'Zoom in', zoomOut: 'Zoom out', fit: 'Fit (F)',
+    selectFlow: 'Select a flow', overviewTitle: 'Overview',
+    overviewDesc: n => `Showing all ${n} nodes and every flow's edges. Pick a flow from the chips above, or with number keys 1–9 / 0.`,
+    overviewEmpty: 'Pick a flow to see <b>one badge per edge</b> with step numbers and an annotation list.<br><br>' +
+      'Use <b>← →</b> (or <b>↑ ↓</b>) to step forward/back, <b>Home/End</b> to jump to the ends. Clicking a badge or annotation also pans to that step.'
+  },
+  ja: {
+    hint: '<kbd>1</kbd>–<kbd>0</kbd> フロー&nbsp;·&nbsp;<kbd>←</kbd><kbd>→</kbd> ステップ&nbsp;·&nbsp;<kbd>F</kbd> 全体&nbsp;·&nbsp;<kbd>+</kbd><kbd>-</kbd> ズーム&nbsp;·&nbsp;<kbd>Esc</kbd> 解除',
+    themeTitle: 'カラースキーム', zoomIn: 'ズームイン', zoomOut: 'ズームアウト', fit: '全体表示 (F)',
+    selectFlow: 'フローを選択', overviewTitle: '概要モード',
+    overviewDesc: n => `全 ${n} ノードと全フローのエッジを表示中。上部のチップ、または数字キー 1–9 / 0 でフローを選択してください。`,
+    overviewEmpty: 'フローを選ぶと、<b>1 エッジ = 1 バッジ</b>のステップ番号と注釈リストが表示されます。<br><br>' +
+      '<b>← →</b> (または <b>↑ ↓</b>) でステップを送る／戻す、<b>Home/End</b> で先頭／末尾へ。バッジ／注釈クリックでも該当ステップへ pan します。'
+  }
+};
+let LANG = "en", T = I18N.en;   // assigned from DATA.meta.lang in init()
+
 /* ---------- theme tables ---------- */
 const THEMES = JSON.parse(document.getElementById("atlas-themes").textContent);
 let CURRENT_THEME = null;
@@ -1467,6 +1489,11 @@ function init(){
   DATA.nodes.forEach(n => NODES[n.id] = n);
   DATA.groups.forEach(g => GROUPS[g.id] = g);
 
+  // language: from meta.lang (default "en"); localizes UI chrome
+  LANG = (DATA.meta && DATA.meta.lang === "ja") ? "ja" : "en";
+  T = I18N[LANG];
+  document.documentElement.lang = LANG;
+
   // theme: from <html data-theme>, fall back to default
   applyTheme(document.documentElement.dataset.theme || DEFAULT_THEME);
   resolveGroups();
@@ -1481,6 +1508,14 @@ function init(){
   document.getElementById("brand-title").textContent = DATA.meta.title || "Workflow Atlas";
   document.getElementById("brand-sub").textContent =
     `${DATA.nodes.length} nodes × ${DATA.flows.length} flows` + (DATA.meta.repo ? ` — ${DATA.meta.repo}` : "");
+
+  // localized UI chrome
+  document.getElementById("hint").innerHTML = T.hint;
+  document.getElementById("anno-title").textContent = T.selectFlow;
+  document.getElementById("theme-select").title = T.themeTitle;
+  document.querySelector('.zoomctl button[data-z="in"]').title = T.zoomIn;
+  document.querySelector('.zoomctl button[data-z="out"]').title = T.zoomOut;
+  document.querySelector('.zoomctl button[data-z="fit"]').title = T.fit;
 
   defsEl = el("defs", null, svg);
   buildArrowMarkers();
@@ -1706,13 +1741,10 @@ function clearFlow(){
   for(const id in nodeEls){ nodeEls[id].classList.remove("in-flow","dim","endpoint"); }
   document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
   document.getElementById("anno-ic").textContent = "🗺️";
-  document.getElementById("anno-title").textContent = "概要モード";
-  document.getElementById("anno-desc").textContent =
-    `全 ${DATA.nodes.length} ノードと全フローのエッジを表示中。上部のチップ、または数字キー 1–9 / 0 でフローを選択してください。`;
+  document.getElementById("anno-title").textContent = T.overviewTitle;
+  document.getElementById("anno-desc").textContent = T.overviewDesc(DATA.nodes.length);
   document.getElementById("anno-scroll").innerHTML =
-    '<div class="anno-empty">フローを選ぶと、<b>1 エッジ = 1 バッジ</b>のステップ番号と注釈リストが表示されます。<br><br>' +
-    '<b>← →</b> (または <b>↑ ↓</b>) でステップを送る／戻す、<b>Home/End</b> で先頭／末尾へ。' +
-    'バッジ／注釈クリックでも該当ステップへ pan します。</div>';
+    '<div class="anno-empty">' + T.overviewEmpty + '</div>';
 }
 
 /* ---------- badge placement ---------- */

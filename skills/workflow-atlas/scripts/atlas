@@ -149,6 +149,8 @@ function build(args){
   html = replaceRegion(html, "ATLAS:DATA", dataJson);
   html = replaceRegion(html, "ATLAS:THEME", rootTokens(theme));
   html = html.replace(/(<html[^>]*\bdata-theme=")[^"]*(")/, (m, p1, p2) => p1 + themeId + p2);
+  const lang = (data.meta && data.meta.lang === "ja") ? "ja" : "en";
+  html = html.replace(/(<html[^>]*\blang=")[^"]*(")/, (m, p1, p2) => p1 + lang + p2);
   // function replacer avoids $-pattern interpretation in the title (e.g. "Cost $5", "A $& B")
   html = html.replace(/<title>[\s\S]*?<\/title>/, () => `<title>${escapeHtml(title)}</title>`);
 

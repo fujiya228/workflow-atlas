@@ -23,6 +23,7 @@ working reference with examples. Start by copying `assets/examples/rag-agent.en.
 | `title` | ✔   | Document title + `<title>` + header brand          |
 | `repo`  |     | Project root path, shown muted in the header       |
 | `note`  |     | Legend / ADR pointer (free text)                   |
+| `lang`  |     | UI-chrome language: `"en"` (default) or `"ja"`. Localizes the hint, zoom tooltips, overview text, etc., and sets `<html lang>`. Node/flow content language is whatever you write. |
 
 ## `viewBox`
 

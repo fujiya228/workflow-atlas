@@ -1,5 +1,6 @@
 {
   "meta": {
+    "lang": "ja",
     "title": "AI Agent — RAG パイプライン (状態 × 操作)",
     "note": "汎用サンプル。node = 状態 (store/buffer/actor)、flow = 操作 (index/retrieve/generate/tool/memory)。特定リポジトリ非依存。"
   },

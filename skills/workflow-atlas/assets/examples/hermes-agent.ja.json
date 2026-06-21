@@ -1,5 +1,6 @@
 {
   "meta": {
+    "lang": "ja",
     "title": "Hermes Agent — パッケージ/コンポーネント間ワークフロー",
     "repo": "github.com/nousresearch/hermes-agent",
     "note": "実コードのトレースに基づく。各 step の note 末尾は file:line の根拠。"
